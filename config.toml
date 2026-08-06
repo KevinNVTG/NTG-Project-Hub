@@ -1,0 +1,19 @@
+import { AppShell } from '@/components/app-shell'
+import { requireUser } from '@/lib/auth'
+
+export default async function SettingsPage() {
+  const { supabase, user } = await requireUser()
+  const { data: company } = await supabase.from('company_settings').select('*').single()
+  return <AppShell userEmail={user.email || ''}>
+    <h1 className="page-title">Company Settings</h1><p className="page-subtitle">These values will populate every NTG estimate, contract, PO, change order, and invoice.</p>
+    <div className="card form-grid">
+      <div className="field"><label>Company</label><input readOnly value={company?.company_name || 'Nevada Tile & Granite'} /></div>
+      <div className="field"><label>Phone</label><input readOnly value={company?.phone || '(725) 275-7145'} /></div>
+      <div className="field"><label>Email</label><input readOnly value={company?.email || 'kevin@nevadatileandgranite.com'} /></div>
+      <div className="field"><label>Website</label><input readOnly value={company?.website || 'nevadatileandgranite.com'} /></div>
+      <div className="field full"><label>Address</label><input readOnly value={company?.address || '1404 E Webb Ave, North Las Vegas, NV 89030'} /></div>
+      <div className="field"><label>C-19 License</label><input readOnly value={company?.license_c19 || '0093403'} /></div>
+      <div className="field"><label>C-20 License</label><input readOnly value={company?.license_c20 || '0093447'} /></div>
+    </div>
+  </AppShell>
+}
