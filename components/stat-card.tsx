@@ -1,0 +1,3 @@
+export function StatCard({ label, value }: { label: string; value: string | number }) {
+  return <div className="card"><div className="stat-label">{label}</div><div className="stat-value">{value}</div></div>
+}
