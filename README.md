@@ -1,23 +1,22 @@
-# NTG Project Hub v0.1
+# NTG Project Hub
 
-Production-ready starter for Nevada Tile & Granite's internal project-management application.
+Internal project-management platform for Nevada Tile & Granite.
 
-## Included
+## v0.2
 
-- Supabase email/password authentication
-- NTG-branded login and responsive application shell
-- Command Center dashboard
-- Customer directory and customer creation
-- Project directory and automatic `PRJ-YY-0001` numbering
-- Company settings
-- Supabase migration with Row Level Security
-- Vercel-ready Next.js structure
+This release adds the first fully functional core-operations workflow:
 
-## Required Vercel environment variables
+- Customer search, creation, editing, deletion, and project history
+- Project search, creation, editing, automatic project numbering, and project workspace
+- Activity logging for project creation and edits
+- Command Center backed by live Supabase counts and contract totals
+- Responsive NTG-branded interface
 
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`
+## Production stack
 
-## Deployment
+- Next.js 16 / React 19
+- TypeScript 5.9
+- Supabase Auth + PostgreSQL
+- Vercel deployment
 
-See `docs/DEPLOYMENT.md`.
+See `docs/DEPLOYMENT.md` for environment and deployment notes.

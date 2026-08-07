@@ -1,0 +1,12 @@
+NTG Project Hub v0.2 update
+
+1. In GitHub Desktop choose Repository > Show in Explorer.
+2. Extract this ZIP.
+3. Copy everything INSIDE the extracted NTG-Project-Hub-v0.2-update folder into your repository folder.
+4. When Windows asks, choose Replace the files in the destination / merge folders.
+5. Do NOT delete your repository first.
+6. In GitHub Desktop use summary: Add customer and project management v0.2
+7. Commit to main, then Push origin.
+8. Vercel will deploy automatically.
+
+No new Supabase migration is required for v0.2; it uses the existing v0.1 tables.
