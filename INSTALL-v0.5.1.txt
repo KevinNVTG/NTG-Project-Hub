@@ -1,0 +1,12 @@
+NTG PROJECT HUB v0.5.1 INSTALL
+
+1. Extract this ZIP.
+2. In GitHub Desktop choose Repository > Show in Explorer.
+3. Copy everything INSIDE the NTG-Project-Hub-v0.5.1-layout-update folder into the repository folder.
+4. Choose Replace files in the destination when prompted.
+5. In GitHub Desktop use commit summary:
+   Improve form and PO editor layout v0.5.1
+6. Commit to main, then Push origin.
+7. Wait for Vercel to show Ready.
+
+No Supabase migration is needed.

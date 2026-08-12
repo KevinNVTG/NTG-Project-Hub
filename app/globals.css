@@ -295,3 +295,130 @@ td { padding: 14px 12px; border-bottom: 1px solid #edf1f4; }
 @media (max-width: 1000px) { .po-builder-grid { grid-template-columns: 1fr; } .po-details-card { position: static; } }
 @media (max-width: 700px) { .po-item-form, .po-add-form { grid-template-columns: 1fr; } .po-document { overflow-x: auto; } }
 @media print { .po-document { padding: 0; background: white; } .po-sheet { width: auto; min-height: auto; box-shadow: none; padding: .42in .5in; } @page { size: Letter; margin: 0; } }
+
+/* v0.5.1 form readability and purchase-order editor layout */
+/* Give editable fields enough room to show real names, addresses, and numbers. */
+.field { min-width: 0; }
+.field label { font-size: 14px; line-height: 1.35; }
+.field input,
+.field select,
+.field textarea {
+  min-width: 0;
+  min-height: 46px;
+  padding: 12px 14px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+.field textarea { min-height: 96px; resize: vertical; }
+
+/* Forms should use the available workspace instead of staying in a narrow column. */
+.form-card,
+.form-card-narrow,
+.wide-form-card {
+  width: 100%;
+  max-width: 1120px;
+}
+.form-grid {
+  grid-template-columns: repeat(2, minmax(280px, 1fr));
+  gap: 18px 22px;
+}
+
+/* PO editor: keep the line-item workspace full width and put PO details below it. */
+.po-builder-grid {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 22px;
+}
+.po-details-card {
+  position: static;
+  width: 100%;
+  max-width: none;
+}
+
+/* Each PO item uses two comfortable rows instead of squeezing seven controls together. */
+.po-item-editor {
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 16px;
+  align-items: start;
+}
+.po-item-form {
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 14px;
+  align-items: end;
+}
+.po-item-form .po-description {
+  grid-column: 1 / -1;
+}
+.po-item-form .checkbox-field {
+  grid-column: 1 / span 2;
+  align-self: center;
+  padding: 0;
+  min-height: 44px;
+}
+.po-item-form > button {
+  grid-column: 4;
+  min-height: 44px;
+}
+.po-item-form input,
+.po-add-form input {
+  width: 100%;
+  min-width: 0;
+}
+
+/* New PO item form follows the same spacious pattern. */
+.po-add-form {
+  grid-template-columns: repeat(4, minmax(120px, 1fr));
+  gap: 14px;
+  align-items: end;
+  padding-top: 18px;
+}
+.po-add-form .po-description {
+  grid-column: 1 / -1;
+}
+.po-add-form .checkbox-field {
+  grid-column: 1 / span 2;
+  padding: 0;
+  min-height: 44px;
+}
+.po-add-form > button {
+  grid-column: 4;
+  min-height: 44px;
+}
+
+/* Long text should remain readable throughout project/customer forms and detail cards. */
+.detail-value,
+.contact-grid strong,
+.row-link,
+.project-list-item,
+td,
+th {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1050px) {
+  .form-grid { grid-template-columns: 1fr; }
+  .po-item-form,
+  .po-add-form { grid-template-columns: repeat(2, minmax(160px, 1fr)); }
+  .po-item-form .po-description,
+  .po-add-form .po-description { grid-column: 1 / -1; }
+  .po-item-form .checkbox-field,
+  .po-add-form .checkbox-field { grid-column: 1; }
+  .po-item-form > button,
+  .po-add-form > button { grid-column: 2; }
+}
+
+@media (max-width: 700px) {
+  .field input,
+  .field select,
+  .field textarea { font-size: 16px; }
+  .po-item-editor { grid-template-columns: 1fr; }
+  .po-item-form,
+  .po-add-form { grid-template-columns: 1fr; }
+  .po-item-form .po-description,
+  .po-add-form .po-description,
+  .po-item-form .checkbox-field,
+  .po-add-form .checkbox-field,
+  .po-item-form > button,
+  .po-add-form > button { grid-column: 1; }
+  .po-item-editor > form:last-child { justify-self: end; }
+}
