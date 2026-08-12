@@ -1,0 +1,14 @@
+NTG Project Hub v0.5 Update
+
+1. Extract this update ZIP.
+2. In GitHub Desktop choose Repository > Show in Explorer.
+3. Copy everything INSIDE the extracted update folder into your repository folder.
+4. Choose Replace/Merge when Windows asks. Do not delete the repository first.
+5. In GitHub Desktop use commit summary:
+   Add vendors and purchase orders v0.5
+6. Commit to main, then Push origin.
+7. Supabase should apply migration 202608120003_vendors_purchase_orders.sql automatically.
+8. Wait for Vercel to show Ready.
+9. Test Vendors first, then create a PO from a project.
+
+If Vercel or Supabase reports an error, stop and review that specific deployment/migration error before changing other files.

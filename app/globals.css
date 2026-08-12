@@ -254,3 +254,44 @@ td { padding: 14px 12px; border-bottom: 1px solid #edf1f4; }
 @media print { .contract-document { padding: 0; background: white; } .contract-sheet { width: auto; min-height: auto; box-shadow: none; padding: .42in .5in; } @page { size: Letter; margin: 0; } }
 
 .field-help{display:block;margin-top:6px;color:#667085;font-size:.78rem;line-height:1.4}
+
+/* v0.5 vendors, purchase orders, and job costing */
+.form-card-narrow { max-width: 820px; }
+.table-subline { display: block; margin-top: 3px; color: var(--muted); }
+.po-status-draft { background: #edf0f2; color: #53616b; }
+.po-status-issued { background: #e8f1f8; color: #2d6289; }
+.po-status-partially_received { background: #fff2d9; color: #996000; }
+.po-status-received { background: #e8f4ee; color: var(--success); }
+.po-status-cancelled { background: #fff0f0; color: #9b2727; }
+.po-builder-grid { display: grid; grid-template-columns: minmax(0, 1.7fr) minmax(330px, .8fr); gap: 22px; align-items: start; }
+.po-details-card { position: sticky; top: 92px; }
+.po-items-list { display: grid; gap: 10px; margin: 14px 0; }
+.po-item-editor { display: grid; grid-template-columns: 1fr auto; gap: 8px; align-items: end; padding: 12px; border: 1px solid #dce5ea; border-radius: 10px; background: #fbfcfd; }
+.po-item-form { display: grid; grid-template-columns: minmax(220px, 1fr) 80px 70px 115px 90px auto auto; gap: 9px; align-items: end; }
+.po-add-form { display: grid; grid-template-columns: minmax(220px, 1fr) 80px 70px 115px auto auto; gap: 9px; align-items: end; border-top: 1px solid #e1e7eb; margin-top: 15px; padding-top: 15px; }
+.po-item-form .field, .po-add-form .field { margin: 0; }
+.po-description { min-width: 0; }
+.checkbox-field { display: flex; align-items: center; gap: 6px; padding-bottom: 10px; font-size: 12px; font-weight: 700; color: #536572; white-space: nowrap; }
+.checkbox-field input { width: auto; }
+.po-document { min-height: 100vh; background: #e8edf0; padding: 28px 0; color: #182831; }
+.po-sheet { width: 8.5in; min-height: 11in; margin: 0 auto; padding: .48in .58in; background: #fff; box-shadow: 0 8px 28px rgba(25,46,59,.14); font-family: Arial, Helvetica, sans-serif; font-size: 10px; line-height: 1.42; }
+.po-doc-header { display: flex; justify-content: space-between; gap: 20px; align-items: center; padding-bottom: 10px; border-bottom: 2px solid #213f55; }
+.po-meta-grid { display: grid; grid-template-columns: 1.15fr 1.15fr 1fr; gap: 10px; margin: 14px 0 10px; }
+.po-meta-grid > div { border: 1px solid #d8e0e5; border-radius: 6px; padding: 9px 10px; }
+.po-meta-grid span, .po-reference-grid span { display: block; font-size: 8px; text-transform: uppercase; letter-spacing: .06em; color: #6e7f89; font-weight: 800; margin-bottom: 3px; }
+.po-meta-grid strong, .po-reference-grid strong { font-size: 10px; }
+.po-meta-grid p { margin: 2px 0; }
+.po-reference-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.po-reference-grid > div { padding: 7px 9px; background: #f7f9fa; border-radius: 5px; }
+.po-document-table { width: 100%; border-collapse: collapse; margin-top: 8px; }
+.po-document-table th { background: #213f55; color: white; text-align: left; padding: 7px 8px; font-size: 8.5px; text-transform: uppercase; letter-spacing: .04em; }
+.po-document-table td { border-bottom: 1px solid #e1e7eb; padding: 7px 8px; }
+.po-document-table th:not(:first-child), .po-document-table td:not(:first-child) { text-align: right; }
+.po-signature-area { display: grid; grid-template-columns: 2.5fr .7fr; gap: 24px; margin-top: 48px; }
+.po-signature-area > div { border-top: 1px solid #4d5e68; padding-top: 5px; min-height: 24px; }
+.po-signature-area span { color: #677883; font-size: 8.5px; }
+.po-sheet footer { margin-top: 28px; border-top: 1px solid #d8e0e5; padding-top: 7px; text-align: center; color: #73838d; font-size: 8px; }
+@media (max-width: 1150px) { .po-item-form { grid-template-columns: minmax(200px,1fr) 80px 70px 110px; } .po-item-form .checkbox-field, .po-item-form button { align-self: center; } .po-add-form { grid-template-columns: minmax(200px,1fr) 80px 70px 110px; } }
+@media (max-width: 1000px) { .po-builder-grid { grid-template-columns: 1fr; } .po-details-card { position: static; } }
+@media (max-width: 700px) { .po-item-form, .po-add-form { grid-template-columns: 1fr; } .po-document { overflow-x: auto; } }
+@media print { .po-document { padding: 0; background: white; } .po-sheet { width: auto; min-height: auto; box-shadow: none; padding: .42in .5in; } @page { size: Letter; margin: 0; } }
