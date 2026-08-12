@@ -1,0 +1,9 @@
+NTG Project Hub v0.4.1 install
+
+1. Extract this update.
+2. Copy everything inside the update folder into your existing NTG-Project-Hub repository.
+3. Choose Replace/Merge when Windows asks. Do not delete the repository first.
+4. In GitHub Desktop commit with: Make contract expenses customizable v0.4.1
+5. Push origin.
+6. Supabase should apply 202608120002_contractor_expenses.sql automatically.
+7. Wait for Vercel to show Ready, then open a contract and edit Contractor expenses before Print / PDF.

@@ -252,3 +252,5 @@ td { padding: 14px 12px; border-bottom: 1px solid #edf1f4; }
 @media (max-width: 1000px) { .contract-builder-grid { grid-template-columns: 1fr; } .contract-details-card { position: static; } .milestone-form { grid-template-columns: 1fr 90px 130px; } .milestone-form button { grid-column: 1 / -1; } }
 @media (max-width: 700px) { .milestone-form { grid-template-columns: 1fr; } .contract-document { overflow-x: auto; } }
 @media print { .contract-document { padding: 0; background: white; } .contract-sheet { width: auto; min-height: auto; box-shadow: none; padding: .42in .5in; } @page { size: Letter; margin: 0; } }
+
+.field-help{display:block;margin-top:6px;color:#667085;font-size:.78rem;line-height:1.4}

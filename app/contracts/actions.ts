@@ -46,6 +46,7 @@ export async function convertEstimateToContract(estimateId: string) {
     client_address: customer?.billing_address || '',
     project_address: project?.project_address || '',
     scope,
+    contractor_expenses: '',
     contract_price: total,
     created_by: user.id,
   }).select('id').single()
@@ -88,6 +89,7 @@ export async function updateContract(id: string, formData: FormData) {
     client_address: text(formData, 'client_address'),
     project_address: text(formData, 'project_address'),
     scope: text(formData, 'scope'),
+    contractor_expenses: text(formData, 'contractor_expenses'),
     contract_price: number(formData, 'contract_price'),
     due_date_type: dueType,
     due_date: dueType === 'fixed' && text(formData, 'due_date') ? text(formData, 'due_date') : null,
