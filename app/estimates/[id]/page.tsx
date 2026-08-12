@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { requireUser } from '@/lib/auth'
 import { addEstimateItem, deleteEstimateItem, updateEstimate } from '../actions'
+import { convertEstimateToContract } from '@/app/contracts/actions'
 
 function money(value: number) { return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) }
 function customerName(c: any) { return c?.company_name || [c?.first_name, c?.last_name].filter(Boolean).join(' ') || 'No customer' }
@@ -12,6 +13,7 @@ export default async function EstimateDetailPage({ params }: { params: Promise<{
   const { supabase } = await requireUser()
   const { data: estimate } = await supabase.from('estimates').select('*, projects(id,project_number,project_name,project_address),customers(first_name,last_name,company_name,email,phone,billing_address),estimate_items(*)').eq('id', id).maybeSingle()
   if (!estimate) notFound()
+  const { data: existingContract } = await supabase.from('contracts').select('id,contract_number').eq('source_estimate_id', id).maybeSingle()
   const project = Array.isArray(estimate.projects) ? estimate.projects[0] : estimate.projects
   const customer = Array.isArray(estimate.customers) ? estimate.customers[0] : estimate.customers
   const items = [...(estimate.estimate_items || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
@@ -21,10 +23,11 @@ export default async function EstimateDetailPage({ params }: { params: Promise<{
   const total = subtotal + tax
   const updateAction = updateEstimate.bind(null, id)
   const addAction = addEstimateItem.bind(null, id)
+  const convertAction = convertEstimateToContract.bind(null, id)
 
   return (
     <AppShell title="Estimate Builder">
-      <div className="page-heading"><div><Link className="eyebrow-link" href="/estimates">← Estimates</Link><div className="project-title-line"><h2>{estimate.estimate_number}</h2><span className={`badge estimate-status-${estimate.status}`}>{estimate.status}</span></div><p>{project?.project_number} · {project?.project_name} · {customerName(customer)}</p></div><div className="quick-actions-inline"><Link className="secondary-button" href={`/estimates/${id}/print`} target="_blank">Print / PDF</Link>{project?.id ? <Link className="secondary-button" href={`/projects/${project.id}`}>Open Project</Link> : null}</div></div>
+      <div className="page-heading"><div><Link className="eyebrow-link" href="/estimates">← Estimates</Link><div className="project-title-line"><h2>{estimate.estimate_number}</h2><span className={`badge estimate-status-${estimate.status}`}>{estimate.status}</span></div><p>{project?.project_number} · {project?.project_name} · {customerName(customer)}</p></div><div className="quick-actions-inline"><Link className="secondary-button" href={`/estimates/${id}/print`} target="_blank">Print / PDF</Link>{existingContract?.id ? <Link className="primary-link-button" href={`/contracts/${existingContract.id}`}>Open {existingContract.contract_number}</Link> : <form action={convertAction}><button className="primary-link-button" type="submit">Convert to Contract</button></form>}{project?.id ? <Link className="secondary-button" href={`/projects/${project.id}`}>Open Project</Link> : null}</div></div>
       <section className="grid-cards project-stats"><div className="card"><div className="stat-label">Estimate Total</div><div className="stat-value stat-money">{money(total)}</div></div><div className="card"><div className="stat-label">Subtotal</div><div className="detail-value">{money(subtotal)}</div></div><div className="card"><div className="stat-label">Tax</div><div className="detail-value">{money(tax)}</div></div><div className="card"><div className="stat-label">Line Items</div><div className="detail-value">{items.length}</div></div></section>
 
       <section className="estimate-builder-grid">

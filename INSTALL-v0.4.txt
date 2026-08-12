@@ -1,0 +1,15 @@
+NTG PROJECT HUB v0.4 - RESIDENTIAL CONTRACT BUILDER
+
+1. In GitHub Desktop: Repository > Show in Explorer.
+2. Extract this ZIP.
+3. Copy everything INSIDE the NTG-Project-Hub-v0.4-update folder into your repository root.
+4. Choose Replace files in destination when Windows asks. Do NOT delete the existing repository first.
+5. GitHub Desktop commit summary:
+   Add residential contract builder v0.4
+6. Commit to main, then Push origin.
+7. Supabase GitHub integration should apply migration:
+   supabase/migrations/202608120001_contracts.sql
+8. Wait for Vercel deployment to show Ready.
+9. Test: Estimates > open an estimate > Convert to Contract > edit milestones > Print / PDF.
+
+If Vercel or Supabase fails, send the newest error screenshot before changing anything.
