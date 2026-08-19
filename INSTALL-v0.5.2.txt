@@ -1,0 +1,11 @@
+NTG Project Hub v0.5.2
+
+1. Extract this ZIP.
+2. In GitHub Desktop choose Repository > Show in Explorer.
+3. Copy everything INSIDE this update folder into the repository root.
+4. Choose Replace files in the destination when Windows asks.
+5. Commit summary: Polish page layouts and table readability v0.5.2
+6. Commit to main, then Push origin.
+7. Wait for Vercel to show Ready, then hard-refresh the browser with Ctrl+F5.
+
+No Supabase migration is required.

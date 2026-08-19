@@ -422,3 +422,128 @@ th {
   .po-add-form > button { grid-column: 1; }
   .po-item-editor > form:last-child { justify-self: end; }
 }
+
+/* v0.5.2 workspace readability + responsive layout polish */
+/* Prevent grid children from forcing the entire application wider than the browser. */
+.content,
+.card,
+.two-column > *,
+.customers-layout > *,
+.form-grid > *,
+.po-builder-grid > *,
+.contract-builder-grid > *,
+.estimate-builder-grid > * {
+  min-width: 0;
+}
+
+/* Customer directory: list first, editor underneath at a comfortable full width. */
+.customers-layout {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+}
+.customers-layout .sticky-form {
+  position: static;
+  width: 100%;
+  max-width: none;
+}
+.customers-layout .sticky-form .form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* Tables scroll as tables when space is tight; text must never collapse letter-by-letter. */
+.table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.table-wrap table {
+  min-width: 760px;
+  table-layout: auto;
+}
+th,
+td {
+  overflow-wrap: normal;
+  word-break: normal;
+  vertical-align: middle;
+}
+th {
+  white-space: nowrap;
+}
+td {
+  line-height: 1.4;
+}
+.table-wrap td:not(:first-child) {
+  white-space: nowrap;
+}
+.table-wrap td:first-child {
+  min-width: 190px;
+}
+.row-link {
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.row-link strong,
+.row-link small {
+  display: block;
+  white-space: normal;
+}
+.badge {
+  white-space: nowrap;
+}
+
+/* Forms: readable controls, predictable columns, and generous breathing room. */
+.form-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.field input,
+.field select,
+.field textarea {
+  max-width: 100%;
+}
+.card > .field:last-of-type,
+.card > .form-grid:last-of-type {
+  margin-bottom: 18px;
+}
+
+/* Keep editors vertical on normal laptop screens instead of creating narrow side panels. */
+.po-builder-grid,
+.contract-builder-grid,
+.estimate-builder-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+.po-details-card,
+.contract-details-card,
+.estimate-details-card {
+  position: static;
+  width: 100%;
+  max-width: none;
+}
+
+/* Avoid browser-wide horizontal scrolling. Individual data tables handle their own overflow. */
+.main {
+  overflow-x: hidden;
+}
+.content {
+  width: 100%;
+  max-width: 1600px;
+}
+
+@media (max-width: 900px) {
+  .customers-layout .sticky-form .form-grid,
+  .form-grid {
+    grid-template-columns: 1fr;
+  }
+  .table-wrap table {
+    min-width: 680px;
+  }
+}
+
+@media (max-width: 760px) {
+  .content {
+    padding: 20px 14px;
+  }
+  .card {
+    padding: 16px;
+  }
+}
