@@ -12,6 +12,7 @@ const links = [
   ['/purchase-orders', 'Purchase Orders'],
   ['/vendors', 'Vendors'],
   ['/settings', 'Company Settings'],
+  ['/settings/stone-slabs', 'Stone Slab Pricing'],
 ]
 
 export async function AppShell({ title, children }: { title: string; children: React.ReactNode }) {

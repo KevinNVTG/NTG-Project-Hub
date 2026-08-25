@@ -547,3 +547,42 @@ td {
     padding: 16px;
   }
 }
+
+/* v0.6 stone slab pricing library */
+.settings-feature-card { margin-top: 18px; display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 24px 26px; }
+.settings-feature-card h3 { margin: 4px 0 7px; font-size: 21px; }
+.settings-feature-card p { margin: 0; max-width: 760px; color: var(--muted); line-height: 1.5; }
+.settings-kicker, .stone-material-kicker { display: inline-block; color: #527088; font-size: 11px; font-weight: 900; text-transform: uppercase; letter-spacing: .08em; }
+.slab-stats { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.slab-help-card { grid-column: span 1; }
+.slab-create-card { margin-bottom: 20px; padding: 26px; }
+.slab-form-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 14px 16px; }
+.slab-form-grid .field { min-width: 0; }
+.stone-library-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+.stone-slab-card { padding: 0; overflow: hidden; }
+.stone-slab-inactive { opacity: .72; }
+.stone-slab-heading { display: flex; justify-content: space-between; align-items: flex-start; gap: 18px; padding: 22px 24px 16px; }
+.stone-slab-heading h3 { margin: 5px 0 4px; font-size: 21px; }
+.stone-slab-heading p { margin: 0; color: var(--muted); font-size: 13px; overflow-wrap: anywhere; }
+.stone-price-strip { display: grid; grid-template-columns: repeat(3, 1fr); background: #f4f8fa; border-top: 1px solid #e1e9ee; border-bottom: 1px solid #e1e9ee; }
+.stone-price-strip > div { padding: 15px 18px; border-right: 1px solid #e1e9ee; min-width: 0; }
+.stone-price-strip > div:last-child { border-right: 0; }
+.stone-price-strip span, .stone-price-strip small { display: block; color: #6d7f8b; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: .04em; }
+.stone-price-strip strong { display: block; margin: 4px 0 2px; font-size: 20px; color: #213f55; }
+.stone-edit-details { padding: 17px 24px 22px; }
+.stone-edit-details summary { cursor: pointer; color: #2e6288; font-weight: 800; }
+.stone-edit-details[open] summary { margin-bottom: 18px; }
+.compact-slab-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.slab-active-check { margin: 5px 0 12px; }
+.stone-delete-form { border-top: 1px solid #f0d8d8; margin-top: 16px; padding-top: 16px; text-align: right; }
+.stone-estimate-picker { border: 1px solid #cddde7; background: linear-gradient(180deg, #ffffff 0%, #fbfdfe 100%); }
+.stone-picker-form { display: grid; grid-template-columns: minmax(330px, 2.5fr) 110px 180px auto auto; gap: 12px; align-items: end; }
+.stone-picker-form .field { margin: 0; min-width: 0; }
+.stone-picker-select select { min-width: 0; }
+.stone-tax-check { min-height: 48px; margin: 0; justify-content: center; }
+.stone-add-button { min-height: 48px; white-space: nowrap; }
+.stone-library-empty { border: 1px dashed #cbd8e1; background: #f7fafc; border-radius: 12px; padding: 18px; display: flex; justify-content: space-between; align-items: center; gap: 18px; }
+.stone-library-empty strong { display: block; margin-bottom: 4px; }
+.stone-library-empty p { margin: 0; color: var(--muted); font-size: 13px; }
+@media (max-width: 1200px) { .slab-form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .stone-picker-form { grid-template-columns: minmax(280px, 1fr) 110px 160px; } .stone-tax-check, .stone-add-button { grid-row: 2; } }
+@media (max-width: 850px) { .stone-library-grid { grid-template-columns: 1fr; } .slab-stats { grid-template-columns: 1fr; } .settings-feature-card, .stone-library-empty { align-items: stretch; flex-direction: column; } .stone-picker-form, .slab-form-grid, .compact-slab-grid { grid-template-columns: 1fr; } .stone-tax-check, .stone-add-button { grid-row: auto; } .stone-price-strip { grid-template-columns: 1fr; } .stone-price-strip > div { border-right: 0; border-bottom: 1px solid #e1e9ee; } .stone-price-strip > div:last-child { border-bottom: 0; } }

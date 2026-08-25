@@ -1,0 +1,12 @@
+NTG Project Hub v0.6 installation
+
+1. Extract this ZIP.
+2. Copy everything INSIDE the NTG-Project-Hub-v0.6-stone-pricing-update folder into the existing GitHub Desktop repository folder.
+3. Choose Replace/Merge when Windows asks.
+4. In GitHub Desktop commit with:
+   Add stone slab pricing library v0.6
+5. Push origin.
+6. Supabase should automatically apply 202608250001_stone_slab_pricing.sql.
+7. Wait for Vercel to show Ready.
+8. Open Company Settings > Stone Slab Pricing and add a few slabs.
+9. Open an Estimate. The saved active slabs will appear in the Stone Slab Selection section.

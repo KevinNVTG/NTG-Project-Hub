@@ -106,3 +106,53 @@ export async function deleteEstimateItem(estimateId: string, itemId: string) {
   revalidatePath(`/estimates/${estimateId}`)
   revalidatePath('/dashboard')
 }
+
+
+export async function addStoneSlabToEstimate(estimateId: string, formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const slabId = text(formData, 'stone_slab_id')
+  if (!slabId) throw new Error('Select a stone slab.')
+
+  const { data: estimate, error: estimateError } = await supabase
+    .from('estimates')
+    .select('project_id,estimate_number')
+    .eq('id', estimateId)
+    .single()
+  if (estimateError) throw new Error(estimateError.message)
+
+  const { data: slab, error: slabError } = await supabase
+    .from('stone_slabs')
+    .select('*')
+    .eq('id', slabId)
+    .eq('active', true)
+    .single()
+  if (slabError) throw new Error(slabError.message)
+
+  const quantity = money(formData, 'quantity') || 1
+  const overrideRaw = text(formData, 'price_override')
+  const unitPrice = overrideRaw === '' ? Number(slab.estimate_price || 0) : money(formData, 'price_override')
+  const detailBits = [slab.material_type, slab.color, slab.supplier].filter(Boolean)
+  const description = `Stone Slab - ${slab.name}${detailBits.length ? ` (${detailBits.join(' / ')})` : ''}`
+
+  const { count } = await supabase.from('estimate_items').select('*', { count: 'exact', head: true }).eq('estimate_id', estimateId)
+  const { error } = await supabase.from('estimate_items').insert({
+    estimate_id: estimateId,
+    sort_order: count || 0,
+    category: 'material',
+    description,
+    quantity,
+    unit: 'SLAB',
+    unit_price: unitPrice,
+    taxable: formData.get('taxable') === 'on',
+  })
+  if (error) throw new Error(error.message)
+
+  await supabase.from('activity_logs').insert({
+    project_id: estimate.project_id,
+    user_id: user.id,
+    action: 'Stone slab added to estimate',
+    details: { estimate_number: estimate.estimate_number, slab_name: slab.name, quantity, unit_price: unitPrice },
+  })
+  revalidatePath(`/estimates/${estimateId}`)
+  revalidatePath('/dashboard')
+}
