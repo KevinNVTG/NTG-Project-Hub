@@ -586,3 +586,24 @@ td {
 .stone-library-empty p { margin: 0; color: var(--muted); font-size: 13px; }
 @media (max-width: 1200px) { .slab-form-grid { grid-template-columns: repeat(2, minmax(0,1fr)); } .stone-picker-form { grid-template-columns: minmax(280px, 1fr) 110px 160px; } .stone-tax-check, .stone-add-button { grid-row: 2; } }
 @media (max-width: 850px) { .stone-library-grid { grid-template-columns: 1fr; } .slab-stats { grid-template-columns: 1fr; } .settings-feature-card, .stone-library-empty { align-items: stretch; flex-direction: column; } .stone-picker-form, .slab-form-grid, .compact-slab-grid { grid-template-columns: 1fr; } .stone-tax-check, .stone-add-button { grid-row: auto; } .stone-price-strip { grid-template-columns: 1fr; } .stone-price-strip > div { border-right: 0; border-bottom: 1px solid #e1e9ee; } .stone-price-strip > div:last-child { border-bottom: 0; } }
+
+/* v0.7 contract-linked change orders */
+.co-status-draft { background: #edf2f5; color: #496171; }
+.co-status-sent { background: #e9f2fb; color: #2d6389; }
+.co-status-approved { background: #e7f5ec; color: #247248; }
+.co-status-rejected, .co-status-void { background: #f9eaea; color: #9a3b3b; }
+.change-order-editor-grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; }
+.change-order-link-card { margin-top: 0; }
+.change-order-contract-summary { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 12px; margin: 16px 0; }
+.change-order-contract-summary > div { padding: 15px 16px; background: #f4f8fa; border: 1px solid #e1e9ee; border-radius: 10px; min-width: 0; }
+.change-order-contract-summary span { display: block; color: #71828c; font-size: 10px; font-weight: 900; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 5px; }
+.change-order-contract-summary strong { display: block; font-size: 15px; overflow-wrap: anywhere; }
+.approve-co-form { border-top: 1px solid #e4eaee; padding-top: 18px; margin-top: 18px; }
+.approve-co-form p { margin: 0 0 14px; color: #516774; line-height: 1.5; }
+.approved-lock-banner { display: flex; align-items: center; gap: 12px; padding: 14px 18px; margin-bottom: 20px; border: 1px solid #b9ddc7; background: #eef9f2; color: #245d3c; border-radius: 10px; }
+.approved-lock-banner strong { white-space: nowrap; }
+.change-order-sheet .contract-meta { grid-template-columns: 1.35fr .85fr .85fr .75fr; }
+.change-order-price-table td:first-child { width: 75%; }
+.change-order-price-table td:last-child { text-align: right; white-space: nowrap; }
+.form-card-wide { max-width: 980px; }
+@media (max-width: 850px) { .change-order-contract-summary { grid-template-columns: 1fr; } .approved-lock-banner { align-items: flex-start; flex-direction: column; } }

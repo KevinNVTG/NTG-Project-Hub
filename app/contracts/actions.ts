@@ -48,6 +48,7 @@ export async function convertEstimateToContract(estimateId: string) {
     scope,
     contractor_expenses: '',
     contract_price: total,
+    original_contract_price: total,
     created_by: user.id,
   }).select('id').single()
   if (insertError || !contract) throw new Error(insertError?.message || 'Could not create contract')
