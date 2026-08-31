@@ -128,3 +128,69 @@ export async function approveChangeOrder(id: string) {
   revalidatePath(`/projects/${co.project_id}`)
   revalidatePath('/dashboard')
 }
+
+export async function correctApprovedChangeOrder(id: string, formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const correctionNote = text(formData, 'correction_note')
+  if (!correctionNote) throw new Error('Enter a correction note explaining what was changed.')
+
+  const { data, error } = await supabase.rpc('correct_approved_change_order', {
+    p_change_order_id: id,
+    p_new_amount: number(formData, 'amount'),
+    p_revision_date: text(formData, 'revision_date') || null,
+    p_title: text(formData, 'title') || 'Contract Revision / Change Order',
+    p_reason: text(formData, 'reason'),
+    p_scope_revision: text(formData, 'scope_revision'),
+    p_schedule_impact: text(formData, 'schedule_impact'),
+    p_payment_terms: text(formData, 'payment_terms'),
+    p_correction_note: correctionNote,
+  })
+  if (error) throw new Error(error.message)
+
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result) throw new Error('Correction did not return an updated contract value.')
+
+  const delta = Number(result.new_amount || 0) - Number(result.old_amount || 0)
+  await supabase.from('activity_logs').insert({
+    project_id: result.project_id,
+    user_id: user.id,
+    action: 'Approved change order corrected',
+    details: `${id}: amount corrected from ${Number(result.old_amount || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} to ${Number(result.new_amount || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })} (${delta >= 0 ? '+' : ''}${delta.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}). Note: ${correctionNote}`,
+  })
+
+  revalidatePath(`/change-orders/${id}`)
+  revalidatePath(`/change-orders/${id}/print`)
+  revalidatePath('/change-orders')
+  revalidatePath(`/contracts/${result.contract_id}`)
+  revalidatePath(`/projects/${result.project_id}`)
+  revalidatePath('/dashboard')
+}
+
+export async function voidChangeOrder(id: string, formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const voidReason = text(formData, 'void_reason')
+  if (!voidReason) throw new Error('Enter a reason before voiding this change order.')
+
+  const { data, error } = await supabase.rpc('void_change_order', {
+    p_change_order_id: id,
+    p_void_reason: voidReason,
+  })
+  if (error) throw new Error(error.message)
+
+  const result = Array.isArray(data) ? data[0] : data
+  if (!result) throw new Error('Void action did not return an updated contract value.')
+
+  await supabase.from('activity_logs').insert({
+    project_id: result.project_id,
+    user_id: user.id,
+    action: 'Change order voided',
+    details: `${id} voided. Financial effect removed: ${Number(result.removed_amount || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' })}. Reason: ${voidReason}`,
+  })
+
+  revalidatePath(`/change-orders/${id}`)
+  revalidatePath(`/change-orders/${id}/print`)
+  revalidatePath('/change-orders')
+  revalidatePath(`/contracts/${result.contract_id}`)
+  revalidatePath(`/projects/${result.project_id}`)
+  revalidatePath('/dashboard')
+}
