@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
+import { ntgToday } from '@/lib/ntg-date'
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -29,6 +30,7 @@ export async function createChangeOrder(contractId: string) {
     project_id: contract.project_id,
     customer_id: contract.customer_id,
     title: 'Contract Revision / Change Order',
+    revision_date: ntgToday(),
     reason: '',
     scope_revision: '',
     schedule_impact: 'No schedule change unless noted above.',
@@ -71,7 +73,7 @@ export async function updateChangeOrder(id: string, formData: FormData) {
 
   const { error } = await supabase.from('change_orders').update({
     status,
-    revision_date: text(formData, 'revision_date') || new Date().toISOString().slice(0, 10),
+    revision_date: text(formData, 'revision_date') || ntgToday(),
     title: text(formData, 'title') || 'Contract Revision / Change Order',
     reason: text(formData, 'reason'),
     scope_revision: text(formData, 'scope_revision'),

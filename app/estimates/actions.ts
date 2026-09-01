@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
+import { ntgToday } from '@/lib/ntg-date'
 
 function text(formData: FormData, key: string) {
   return String(formData.get(key) || '').trim()
@@ -28,7 +29,7 @@ export async function createEstimate(formData: FormData) {
   const { data, error } = await supabase.from('estimates').insert({
     project_id: projectId,
     customer_id: project.customer_id,
-    estimate_date: text(formData, 'estimate_date') || new Date().toISOString().slice(0, 10),
+    estimate_date: text(formData, 'estimate_date') || ntgToday(),
     valid_until: text(formData, 'valid_until') || null,
     scope: text(formData, 'scope'),
     payment_terms: text(formData, 'payment_terms'),
@@ -97,6 +98,61 @@ export async function addEstimateItem(estimateId: string, formData: FormData) {
   await supabase.from('activity_logs').insert({ project_id: estimate.project_id, user_id: user.id, action: 'Estimate item added', details: { estimate_number: estimate.estimate_number, description } })
   revalidatePath(`/estimates/${estimateId}`)
   revalidatePath('/dashboard')
+}
+
+export async function updateEstimateItem(estimateId: string, itemId: string, formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const description = text(formData, 'description')
+  if (!description) throw new Error('Description is required.')
+
+  const { data: estimate, error: estimateError } = await supabase
+    .from('estimates')
+    .select('project_id,estimate_number')
+    .eq('id', estimateId)
+    .single()
+  if (estimateError) throw new Error(estimateError.message)
+
+  const { data: existingItem, error: itemError } = await supabase
+    .from('estimate_items')
+    .select('id,description,quantity,unit,unit_price,category,taxable')
+    .eq('id', itemId)
+    .eq('estimate_id', estimateId)
+    .single()
+  if (itemError) throw new Error(itemError.message)
+
+  const updates = {
+    category: text(formData, 'category') || 'labor',
+    description,
+    quantity: money(formData, 'quantity') || 1,
+    unit: text(formData, 'unit') || 'LS',
+    unit_price: money(formData, 'unit_price'),
+    taxable: formData.get('taxable') === 'on',
+  }
+
+  const { error } = await supabase
+    .from('estimate_items')
+    .update(updates)
+    .eq('id', itemId)
+    .eq('estimate_id', estimateId)
+  if (error) throw new Error(error.message)
+
+  await supabase.from('activity_logs').insert({
+    project_id: estimate.project_id,
+    user_id: user.id,
+    action: 'Estimate item updated',
+    details: {
+      estimate_number: estimate.estimate_number,
+      previous_description: existingItem.description,
+      description: updates.description,
+      previous_amount: Number(existingItem.quantity) * Number(existingItem.unit_price),
+      amount: Number(updates.quantity) * Number(updates.unit_price),
+    },
+  })
+
+  revalidatePath(`/estimates/${estimateId}`)
+  revalidatePath('/estimates')
+  revalidatePath('/dashboard')
+  revalidatePath(`/projects/${estimate.project_id}`)
 }
 
 export async function deleteEstimateItem(estimateId: string, itemId: string) {

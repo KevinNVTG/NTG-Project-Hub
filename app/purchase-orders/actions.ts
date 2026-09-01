@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
+import { ntgToday } from '@/lib/ntg-date'
 
 function text(formData: FormData, key: string) { return String(formData.get(key) || '').trim() }
 function num(formData: FormData, key: string) { const n = Number(formData.get(key) || 0); return Number.isFinite(n) ? n : 0 }
@@ -17,7 +18,7 @@ export async function createPurchaseOrder(formData: FormData) {
     project_id: projectId,
     vendor_id: text(formData, 'vendor_id') || null,
     status: 'draft',
-    order_date: text(formData, 'order_date') || new Date().toISOString().slice(0,10),
+    order_date: text(formData, 'order_date') || ntgToday(),
     requested_delivery_date: text(formData, 'requested_delivery_date') || null,
     vendor_quote_number: text(formData, 'vendor_quote_number'),
     requested_by: text(formData, 'requested_by') || user.email || '',

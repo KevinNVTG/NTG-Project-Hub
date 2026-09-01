@@ -1,0 +1,7 @@
+NTG Project Hub v0.7.5
+1. Copy everything inside this folder into the root of the NTG-Project-Hub repository.
+2. Choose Replace/Merge when prompted.
+3. Commit: Fix Nevada document dates v0.7.5
+4. Push origin and wait for Vercel to show Ready.
+5. Open the affected contract. Use "Set effective date to Nevada today" once if the existing record still has tomorrow's date.
+No new Supabase migration is required for v0.7.5; v0.7.4 already changed database fallback defaults.

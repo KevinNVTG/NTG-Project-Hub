@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
+import { ntgToday } from '@/lib/ntg-date'
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -47,6 +48,7 @@ export async function convertEstimateToContract(estimateId: string) {
     project_address: project?.project_address || '',
     scope,
     contractor_expenses: '',
+    effective_date: ntgToday(),
     contract_price: total,
     original_contract_price: total,
     created_by: user.id,
@@ -85,7 +87,7 @@ export async function updateContract(id: string, formData: FormData) {
   const dueType = text(formData, 'due_date_type') || 'no_fixed'
   const { error } = await supabase.from('contracts').update({
     status: text(formData, 'status') || 'prepared',
-    effective_date: text(formData, 'effective_date') || new Date().toISOString().slice(0, 10),
+    effective_date: text(formData, 'effective_date') || ntgToday(),
     client_name: text(formData, 'client_name'),
     client_address: text(formData, 'client_address'),
     project_address: text(formData, 'project_address'),
@@ -97,6 +99,16 @@ export async function updateContract(id: string, formData: FormData) {
     due_date_notes: text(formData, 'due_date_notes'),
     additional_terms: text(formData, 'additional_terms'),
   }).eq('id', id)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${id}`)
+  revalidatePath(`/contracts/${id}/print`)
+  revalidatePath('/contracts')
+}
+
+export async function resetContractEffectiveDateToToday(id: string) {
+  const { supabase } = await requireUser()
+  const today = ntgToday()
+  const { error } = await supabase.from('contracts').update({ effective_date: today }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/contracts/${id}`)
   revalidatePath(`/contracts/${id}/print`)
