@@ -1,0 +1,11 @@
+NTG Project Hub v0.7.3
+
+1. Extract this ZIP.
+2. In GitHub Desktop: Repository > Show in Explorer.
+3. Copy everything INSIDE this update folder into the repository folder.
+4. Choose Replace/Merge when prompted. Do not delete the repository first.
+5. Commit summary:
+   Fix approved change order correction controls v0.7.3
+6. Commit to main, then Push origin.
+7. Wait for Supabase migration and Vercel deployment to complete.
+8. Open an approved change order. A prominent "Correct Approved Change Order" button should now appear.
