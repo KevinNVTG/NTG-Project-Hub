@@ -1,0 +1,9 @@
+NTG PROJECT HUB v0.8
+1. Extract this ZIP.
+2. Copy everything INSIDE this update folder into the GitHub repository root.
+3. Choose Replace/Merge when Windows asks.
+4. GitHub Desktop summary: Add invoicing and payments v0.8
+5. Commit to main, then Push origin.
+6. Supabase should apply 202609040001_invoices_payments.sql.
+7. Wait for Vercel to show Ready.
+8. Open a Contract and use + Invoice, or open Invoices from the sidebar.
