@@ -196,3 +196,103 @@ export async function voidChangeOrder(id: string, formData: FormData) {
   revalidatePath(`/projects/${result.project_id}`)
   revalidatePath('/dashboard')
 }
+
+async function requireEditableChangeOrder(id: string) {
+  const { supabase, user } = await requireUser()
+  const { data: co, error } = await supabase
+    .from('change_orders')
+    .select('id,status,approved_at,voided_at,contract_id,project_id,original_contract_price')
+    .eq('id', id)
+    .maybeSingle()
+  if (error || !co) throw new Error(error?.message || 'Change order not found')
+  if (co.status === 'approved' || co.approved_at) throw new Error('Approved change-order line items are locked. Use the approved correction workflow for the total or create a new change order for new work.')
+  if (co.status === 'void' || co.voided_at) throw new Error('Voided change orders cannot be edited.')
+  return { supabase, user, co }
+}
+
+export async function addChangeOrderItem(changeOrderId: string, formData: FormData) {
+  const { supabase, user, co } = await requireEditableChangeOrder(changeOrderId)
+  const description = text(formData, 'description')
+  if (!description) throw new Error('Enter a line-item description.')
+  const quantity = Math.max(number(formData, 'quantity'), 0)
+  const unitPrice = number(formData, 'unit_price')
+  const lineTotal = quantity * unitPrice
+
+  const { data: maxRow } = await supabase
+    .from('change_order_items')
+    .select('sort_order')
+    .eq('change_order_id', changeOrderId)
+    .order('sort_order', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const { error } = await supabase.from('change_order_items').insert({
+    change_order_id: changeOrderId,
+    category: text(formData, 'category') || 'labor',
+    description,
+    quantity,
+    unit: text(formData, 'unit') || 'LS',
+    unit_price: unitPrice,
+    line_total: lineTotal,
+    sort_order: Number(maxRow?.sort_order || 0) + 10,
+    created_by: user.id,
+  })
+  if (error) throw new Error(error.message)
+
+  await supabase.from('activity_logs').insert({
+    project_id: co.project_id,
+    user_id: user.id,
+    action: 'Change order line item added',
+    details: `${description} · ${lineTotal.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+  })
+  revalidatePath(`/change-orders/${changeOrderId}`)
+  revalidatePath(`/change-orders/${changeOrderId}/print`)
+}
+
+export async function updateChangeOrderItem(changeOrderId: string, itemId: string, formData: FormData) {
+  const { supabase } = await requireEditableChangeOrder(changeOrderId)
+  const description = text(formData, 'description')
+  if (!description) throw new Error('Enter a line-item description.')
+  const quantity = Math.max(number(formData, 'quantity'), 0)
+  const unitPrice = number(formData, 'unit_price')
+  const { error } = await supabase.from('change_order_items').update({
+    category: text(formData, 'category') || 'labor',
+    description,
+    quantity,
+    unit: text(formData, 'unit') || 'LS',
+    unit_price: unitPrice,
+    line_total: quantity * unitPrice,
+  }).eq('id', itemId).eq('change_order_id', changeOrderId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/change-orders/${changeOrderId}`)
+  revalidatePath(`/change-orders/${changeOrderId}/print`)
+}
+
+export async function deleteChangeOrderItem(changeOrderId: string, itemId: string) {
+  const { supabase } = await requireEditableChangeOrder(changeOrderId)
+  const { error } = await supabase.from('change_order_items').delete().eq('id', itemId).eq('change_order_id', changeOrderId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/change-orders/${changeOrderId}`)
+  revalidatePath(`/change-orders/${changeOrderId}/print`)
+}
+
+export async function syncChangeOrderAmountFromItems(changeOrderId: string) {
+  const { supabase, user, co } = await requireEditableChangeOrder(changeOrderId)
+  const { data: items, error } = await supabase.from('change_order_items').select('line_total').eq('change_order_id', changeOrderId)
+  if (error) throw new Error(error.message)
+  if (!items?.length) throw new Error('Add at least one line item before using the item total.')
+  const total = items.reduce((sum, item) => sum + Number(item.line_total || 0), 0)
+  const original = Number(co.original_contract_price || 0)
+  const { error: updateError } = await supabase.from('change_orders').update({ amount: total, revised_contract_price: original + total }).eq('id', changeOrderId)
+  if (updateError) throw new Error(updateError.message)
+  await supabase.from('activity_logs').insert({
+    project_id: co.project_id,
+    user_id: user.id,
+    action: 'Change order amount updated from line items',
+    details: `Change order amount set to ${total.toLocaleString('en-US', { style: 'currency', currency: 'USD' })}`,
+  })
+  revalidatePath(`/change-orders/${changeOrderId}`)
+  revalidatePath(`/change-orders/${changeOrderId}/print`)
+  revalidatePath(`/contracts/${co.contract_id}`)
+  revalidatePath(`/projects/${co.project_id}`)
+}

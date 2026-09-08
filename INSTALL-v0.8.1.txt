@@ -1,0 +1,8 @@
+1. Extract this ZIP.
+2. Copy everything INSIDE the update folder into the existing NTG-Project-Hub repository.
+3. Replace/merge files when Windows prompts. Do not delete the repository first.
+4. In GitHub Desktop commit: Add optional change order labor and material items v0.8.1
+5. Push origin.
+6. Wait for Supabase to apply 202609070001_change_order_line_items.sql.
+7. Wait for Vercel deployment to show Ready.
+8. Test on a draft change order: add labor/material items, use their total as the CO amount, then open Print / PDF.
