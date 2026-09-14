@@ -1,0 +1,13 @@
+NTG PROJECT HUB v0.8.2 INSTALL
+
+1. Extract this ZIP.
+2. In GitHub Desktop choose Repository > Show in Explorer.
+3. Copy everything INSIDE this update folder into your repository folder.
+4. Choose Merge / Replace files when prompted. Do not delete the repository first.
+5. In GitHub Desktop use commit summary:
+   Add residential and commercial contract types v0.8.2
+6. Commit to main, then Push origin.
+7. Wait for Supabase to apply 202609140001_contract_types.sql.
+8. Wait for Vercel to show Ready.
+9. Open Contracts. Existing contracts tied to Commercial projects should display Commercial.
+10. Open a contract to manually change Contract Type if needed, Save contract, then Print / PDF.

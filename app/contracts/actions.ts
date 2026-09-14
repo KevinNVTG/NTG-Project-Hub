@@ -26,7 +26,7 @@ export async function convertEstimateToContract(estimateId: string) {
 
   const { data: estimate, error } = await supabase
     .from('estimates')
-    .select('*, projects(id,project_name,project_address), customers(id,first_name,last_name,company_name,billing_address), estimate_items(category,description,quantity,unit,unit_price,taxable,sort_order)')
+    .select('*, projects(id,project_name,project_address,project_type), customers(id,first_name,last_name,company_name,billing_address), estimate_items(category,description,quantity,unit,unit_price,taxable,sort_order)')
     .eq('id', estimateId)
     .maybeSingle()
 
@@ -38,16 +38,20 @@ export async function convertEstimateToContract(estimateId: string) {
   const taxable = items.filter((item: any) => item.taxable).reduce((sum: number, item: any) => sum + Number(item.quantity || 0) * Number(item.unit_price || 0), 0)
   const total = subtotal + taxable * (Number(estimate.sales_tax_rate || 0) / 100)
   const scope = estimate.scope?.trim() || items.map((item: any) => `• ${item.description}`).join('\n')
+  const contractType = project?.project_type === 'commercial' ? 'commercial' : 'residential'
 
   const { data: contract, error: insertError } = await supabase.from('contracts').insert({
     project_id: estimate.project_id,
     customer_id: estimate.customer_id,
     source_estimate_id: estimate.id,
+    contract_type: contractType,
     client_name: customerName(customer),
     client_address: customer?.billing_address || '',
     project_address: project?.project_address || '',
     scope,
     contractor_expenses: '',
+    commercial_payment_terms: contractType === 'commercial' ? (estimate.payment_terms || 'Progress billing in accordance with the agreed schedule of values and project requirements.') : null,
+    exclusions_clarifications: contractType === 'commercial' ? (estimate.exclusions || '') : null,
     effective_date: ntgToday(),
     contract_price: total,
     original_contract_price: total,
@@ -75,7 +79,7 @@ export async function convertEstimateToContract(estimateId: string) {
     project_id: estimate.project_id,
     user_id: user.id,
     action: 'Contract created',
-    details: `Converted ${estimate.estimate_number} to residential construction contract`,
+    details: `Converted ${estimate.estimate_number} to ${contractType} construction contract`,
   })
   revalidatePath('/contracts')
   revalidatePath(`/projects/${estimate.project_id}`)
@@ -85,7 +89,9 @@ export async function convertEstimateToContract(estimateId: string) {
 export async function updateContract(id: string, formData: FormData) {
   const { supabase } = await requireUser()
   const dueType = text(formData, 'due_date_type') || 'no_fixed'
+  const contractType = text(formData, 'contract_type') === 'commercial' ? 'commercial' : 'residential'
   const { error } = await supabase.from('contracts').update({
+    contract_type: contractType,
     status: text(formData, 'status') || 'prepared',
     effective_date: text(formData, 'effective_date') || ntgToday(),
     client_name: text(formData, 'client_name'),
@@ -93,6 +99,8 @@ export async function updateContract(id: string, formData: FormData) {
     project_address: text(formData, 'project_address'),
     scope: text(formData, 'scope'),
     contractor_expenses: text(formData, 'contractor_expenses'),
+    commercial_payment_terms: text(formData, 'commercial_payment_terms'),
+    exclusions_clarifications: text(formData, 'exclusions_clarifications'),
     contract_price: number(formData, 'contract_price'),
     due_date_type: dueType,
     due_date: dueType === 'fixed' && text(formData, 'due_date') ? text(formData, 'due_date') : null,
