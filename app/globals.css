@@ -736,3 +736,117 @@ td {
 .invoice-print{max-width:900px;margin:0 auto;background:#fff;padding:46px}.print-header{display:flex;justify-content:space-between;gap:30px;border-bottom:4px solid #253a50;padding-bottom:22px}.print-brand{display:flex;gap:18px;align-items:center}.print-brand h1{margin:0 0 6px;font-size:23px;color:#253a50}.print-brand p{margin:2px 0;font-size:11px}.invoice-wordmark{text-align:right}.invoice-wordmark strong{display:block;font-size:32px;letter-spacing:.08em;color:#253a50}.invoice-wordmark span{font-size:16px;font-weight:700}.invoice-print-meta{display:grid;grid-template-columns:1fr 1fr 220px;gap:28px;padding:28px 0}.invoice-print-meta>div>span{display:block;font-size:10px;font-weight:800;letter-spacing:.08em;color:#667085;margin-bottom:7px}.invoice-print-meta strong{display:block}.invoice-print-meta p{white-space:pre-line;font-size:12px;line-height:1.5;margin:5px 0}.invoice-date-box p{display:flex;justify-content:space-between;gap:10px;border-bottom:1px solid #e5e7eb;padding:6px 0}.invoice-date-box p span{font-size:11px;color:#667085}.invoice-date-box p strong{font-size:11px}.print-line-table{width:100%;border-collapse:collapse}.print-line-table th{background:#253a50;color:#fff;text-align:left;padding:11px;font-size:11px}.print-line-table th:not(:first-child),.print-line-table td:not(:first-child){text-align:right}.print-line-table td{padding:13px 11px;border-bottom:1px solid #e5e7eb;font-size:12px}.invoice-print-bottom{display:grid;grid-template-columns:1fr 320px;gap:40px;margin-top:26px}.invoice-notes p{font-size:12px;color:#475467;white-space:pre-line}.invoice-totals p,.invoice-totals>div{display:flex;justify-content:space-between;padding:8px 0;margin:0}.invoice-totals>div{border-top:2px solid #253a50;font-size:18px;font-weight:800;color:#253a50}.invoice-payment-history{margin-top:30px;border-top:1px solid #e5e7eb;padding-top:18px}.invoice-payment-history p{display:flex;justify-content:space-between;font-size:12px}.print-footer{margin-top:48px;padding-top:14px;border-top:1px solid #d0d5dd;text-align:center;font-size:10px;color:#667085}
 @media(max-width:1000px){.invoice-detail-grid{grid-template-columns:1fr}.invoice-item-form{grid-template-columns:minmax(220px,1fr) 80px 80px 120px auto}.payment-form{grid-template-columns:1fr 1fr}.invoice-print-meta{grid-template-columns:1fr 1fr}.invoice-date-box{grid-column:1/-1}}@media(max-width:720px){.invoice-create-form,.payment-form{grid-template-columns:1fr}.invoice-item-form{grid-template-columns:1fr 1fr}.invoice-desc{grid-column:1/-1}.invoice-line-editor{grid-template-columns:1fr}.invoice-line-total{text-align:left}.contract-financial-strip{grid-template-columns:1fr}.invoice-print{padding:20px}.print-header,.invoice-print-bottom{grid-template-columns:1fr;display:grid}.invoice-wordmark{text-align:left}.invoice-print-meta{grid-template-columns:1fr}.invoice-date-box{grid-column:auto}}
 @media print{.invoice-print{padding:0;max-width:none}.invoice-print .print-footer{position:relative}}
+
+/* v0.8.3 print/PDF scale normalization
+   Keep every customer-facing document inside a true US Letter printable area.
+   This overrides earlier per-document print rules that used zero page margins. */
+@media print {
+  @page {
+    size: Letter portrait;
+    margin: 0.42in;
+  }
+
+  html,
+  body {
+    width: auto !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Remove the gray browser-preview canvases from all printable documents. */
+  .estimate-document,
+  .contract-document,
+  .po-document {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  /* Fit each document to the printable Letter width instead of allowing a
+     desktop-width sheet to force Chrome/Edge to magnify or crop the PDF. */
+  .document-sheet,
+  .contract-sheet,
+  .po-sheet,
+  .invoice-print {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    height: auto !important;
+    margin: 0 auto !important;
+    box-shadow: none !important;
+    transform: none !important;
+    zoom: 1 !important;
+    overflow: visible !important;
+    break-inside: auto;
+  }
+
+  .document-sheet,
+  .contract-sheet,
+  .po-sheet {
+    padding: 0.06in 0.08in !important;
+  }
+
+  .invoice-print {
+    padding: 0.06in 0.08in !important;
+  }
+
+  /* Keep wide grids/tables inside the page while preserving readable text. */
+  .document-table,
+  .contract-payment-table,
+  .po-document-table,
+  .print-line-table {
+    width: 100% !important;
+    max-width: 100% !important;
+    table-layout: auto;
+  }
+
+  .document-table th,
+  .document-table td,
+  .contract-payment-table th,
+  .contract-payment-table td,
+  .po-document-table th,
+  .po-document-table td,
+  .print-line-table th,
+  .print-line-table td {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  /* Prevent large summary blocks from creating an oversized print width. */
+  .document-bottom-grid,
+  .party-grid,
+  .invoice-print-meta,
+  .invoice-print-bottom,
+  .contract-meta,
+  .contract-signatures,
+  .po-signature-area {
+    max-width: 100% !important;
+  }
+
+  .document-totals,
+  .invoice-totals {
+    max-width: 100% !important;
+  }
+
+  /* Avoid accidental horizontal overflow from long addresses, emails, or notes. */
+  .document-sheet *,
+  .contract-sheet *,
+  .po-sheet *,
+  .invoice-print * {
+    max-width: 100%;
+  }
+
+  img {
+    max-width: 100% !important;
+    height: auto;
+  }
+}

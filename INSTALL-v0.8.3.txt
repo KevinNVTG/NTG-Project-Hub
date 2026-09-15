@@ -1,0 +1,13 @@
+NTG Project Hub v0.8.3
+
+1. Extract this ZIP.
+2. Copy everything INSIDE the extracted folder into your existing NTG-Project-Hub repository.
+3. Choose Replace/Merge when Windows asks.
+4. In GitHub Desktop commit with:
+   Fix PDF print scaling v0.8.3
+5. Push origin.
+6. Wait for Vercel to show Ready.
+7. In the browser press Ctrl+F5 once.
+8. Open an invoice/estimate/contract and use Print / PDF -> Save as PDF.
+
+No Supabase migration is required.
