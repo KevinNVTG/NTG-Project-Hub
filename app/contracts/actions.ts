@@ -92,6 +92,7 @@ export async function updateContract(id: string, formData: FormData) {
   const contractType = text(formData, 'contract_type') === 'commercial' ? 'commercial' : 'residential'
   const { error } = await supabase.from('contracts').update({
     contract_type: contractType,
+    pricing_basis: text(formData, 'pricing_basis') || 'lump_sum',
     status: text(formData, 'status') || 'prepared',
     effective_date: text(formData, 'effective_date') || ntgToday(),
     client_name: text(formData, 'client_name'),

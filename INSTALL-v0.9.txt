@@ -1,0 +1,13 @@
+NTG PROJECT HUB v0.9 INSTALL
+
+1. Extract this ZIP.
+2. Copy EVERYTHING INSIDE the extracted update folder into your local NTG-Project-Hub repository.
+3. Allow Windows to merge folders and replace files.
+4. In GitHub Desktop commit with:
+   Add commercial proposal suite v0.9
+5. Push origin.
+6. Confirm Supabase applies migration 202609160001_commercial_proposals.sql.
+7. Wait for Vercel Production to show Ready.
+8. Press Ctrl+F5 once in Project Hub.
+9. Open Proposal Settings first and review your default commercial language.
+10. Create a test Commercial Proposal and use Print / PDF.

@@ -8,6 +8,7 @@ const links = [
   ['/customers', 'Customers'],
   ['/projects', 'Projects'],
   ['/estimates', 'Estimates'],
+  ['/commercial-proposals', 'Commercial Proposals'],
   ['/contracts', 'Contracts'],
   ['/change-orders', 'Change Orders'],
   ['/invoices', 'Invoices'],
@@ -15,6 +16,7 @@ const links = [
   ['/vendors', 'Vendors'],
   ['/settings', 'Company Settings'],
   ['/settings/stone-slabs', 'Stone Slab Pricing'],
+  ['/settings/commercial-proposals', 'Proposal Settings'],
 ]
 
 export async function AppShell({ title, children }: { title: string; children: React.ReactNode }) {
