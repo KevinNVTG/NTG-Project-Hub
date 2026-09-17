@@ -20,7 +20,7 @@ export async function createProject(formData: FormData) {
     project_address: text(formData, 'project_address'),
     project_type: text(formData, 'project_type') || 'residential',
     status: text(formData, 'status') || 'lead',
-    contract_amount: Number(formData.get('contract_amount') || 0),
+    contract_amount: 0,
     notes: text(formData, 'notes'),
   }).select('id,project_number').single()
 
@@ -40,7 +40,7 @@ export async function updateProject(projectId: string, formData: FormData) {
     project_address: text(formData, 'project_address'),
     project_type: text(formData, 'project_type') || 'residential',
     status: text(formData, 'status') || 'lead',
-    contract_amount: Number(formData.get('contract_amount') || 0),
+    contract_amount: 0,
     notes: text(formData, 'notes'),
   }).eq('id', projectId)
   if (error) throw new Error(error.message)

@@ -859,3 +859,12 @@ td {
 @media(max-width:1200px){.proposal-item-form,.proposal-item-add{grid-template-columns:repeat(4,minmax(0,1fr))}.proposal-item-desc{grid-column:1/-1}.proposal-rate-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:850px){.proposal-create-grid,.proposal-details-grid,.proposal-settings-grid,.proposal-rate-grid,.csi-section-header,.add-csi-section,.csi-preset-form,.proposal-item-form,.proposal-item-add{grid-template-columns:1fr}.span-2,.span-3,.proposal-title-field,.proposal-item-desc{grid-column:1}.commercial-proposal-print{width:auto;padding:20px}.proposal-print-header,.proposal-meta-grid,.proposal-doc-grid,.proposal-signatures{grid-template-columns:1fr;display:grid}.proposal-print-id{text-align:left}}
 @media print{@page{size:Letter portrait;margin:.4in}.commercial-proposal-print{width:auto;max-width:none;padding:0}.sidebar,.topbar{display:none!important}.proposal-print-section,.proposal-csi-print,.proposal-acceptance{break-inside:avoid-page}}
+
+/* v0.9.2 workflow cleanup */
+.field-help-box{display:grid;gap:4px;margin:12px 0 18px;padding:13px 15px;border:1px solid #dce5ea;border-radius:10px;background:#f8fafc;color:#52616d;font-size:13px;line-height:1.45}
+.field-help-box strong{color:#1e3445;font-size:13px}
+.payment-preset-panel{margin:14px 0 16px;padding:14px 15px;border:1px solid #dce5ea;border-radius:10px;background:#f8fafc}
+.payment-preset-panel>strong{display:block;color:#1e3445;margin-bottom:4px}
+.payment-preset-panel>p{margin:0 0 10px;color:#667085;font-size:13px;line-height:1.45}
+.payment-preset-panel .quick-actions-inline{margin-bottom:8px}
+.payment-preset-panel form{margin:0}

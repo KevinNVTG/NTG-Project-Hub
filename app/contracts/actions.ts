@@ -50,7 +50,7 @@ export async function convertEstimateToContract(estimateId: string) {
     project_address: project?.project_address || '',
     scope,
     contractor_expenses: '',
-    commercial_payment_terms: contractType === 'commercial' ? (estimate.payment_terms || 'Progress billing in accordance with the agreed schedule of values and project requirements.') : null,
+    commercial_payment_terms: contractType === 'commercial' ? 'Progress billing in accordance with the agreed schedule of values and project requirements. Payment timing and retainage, if any, are subject to the executed agreement.' : null,
     exclusions_clarifications: contractType === 'commercial' ? (estimate.exclusions || '') : null,
     effective_date: ntgToday(),
     contract_price: total,
@@ -60,10 +60,9 @@ export async function convertEstimateToContract(estimateId: string) {
   if (insertError || !contract) throw new Error(insertError?.message || 'Could not create contract')
 
   const milestones = [
-    ['Upon contract signing / project mobilization', 25],
-    ['Upon first major project milestone', 25],
-    ['Upon second major project milestone', 25],
-    ['Upon completion of all Services', 25],
+    ['25% due upon project mobilization', 25],
+    ['25% due upon completion of 50% of the scope of work', 25],
+    ['Remaining balance due upon completion of the scope of work', 50],
   ].map(([description, percentage], index) => ({
     contract_id: contract.id,
     sort_order: index,
@@ -122,6 +121,70 @@ export async function resetContractEffectiveDateToToday(id: string) {
   revalidatePath(`/contracts/${id}`)
   revalidatePath(`/contracts/${id}/print`)
   revalidatePath('/contracts')
+}
+
+type PaymentSchedulePreset = 'standard_25_25_50' | 'deposit_50_50' | 'progress_30_30_40' | 'four_step_25_each'
+
+const PAYMENT_SCHEDULE_PRESETS: Record<PaymentSchedulePreset, Array<{ description: string; percentage: number }>> = {
+  standard_25_25_50: [
+    { description: '25% due upon project mobilization', percentage: 25 },
+    { description: '25% due upon completion of 50% of the scope of work', percentage: 25 },
+    { description: 'Remaining balance due upon completion of the scope of work', percentage: 50 },
+  ],
+  deposit_50_50: [
+    { description: '50% due upon project mobilization', percentage: 50 },
+    { description: 'Remaining balance due upon completion of the scope of work', percentage: 50 },
+  ],
+  progress_30_30_40: [
+    { description: '30% due upon project mobilization', percentage: 30 },
+    { description: '30% due upon completion of 50% of the scope of work', percentage: 30 },
+    { description: 'Remaining balance due upon completion of the scope of work', percentage: 40 },
+  ],
+  four_step_25_each: [
+    { description: '25% due upon project mobilization', percentage: 25 },
+    { description: '25% due upon completion of 25% of the scope of work', percentage: 25 },
+    { description: '25% due upon completion of 75% of the scope of work', percentage: 25 },
+    { description: 'Remaining balance due upon completion of the scope of work', percentage: 25 },
+  ],
+}
+
+export async function applyPaymentSchedulePreset(contractId: string, preset: PaymentSchedulePreset) {
+  const { supabase, user } = await requireUser()
+  const schedule = PAYMENT_SCHEDULE_PRESETS[preset]
+  if (!schedule) throw new Error('Unknown payment schedule preset.')
+
+  const { data: contract, error: contractError } = await supabase
+    .from('contracts')
+    .select('project_id,contract_price,contract_number')
+    .eq('id', contractId)
+    .single()
+  if (contractError || !contract) throw new Error(contractError?.message || 'Contract not found.')
+
+  const total = Number(contract.contract_price || 0)
+  const { error: deleteError } = await supabase.from('contract_payment_milestones').delete().eq('contract_id', contractId)
+  if (deleteError) throw new Error(deleteError.message)
+
+  const rows = schedule.map((item, index) => ({
+    contract_id: contractId,
+    sort_order: index,
+    description: item.description,
+    percentage: item.percentage,
+    amount: Math.round(total * item.percentage) / 100,
+  }))
+  const { error: insertError } = await supabase.from('contract_payment_milestones').insert(rows)
+  if (insertError) throw new Error(insertError.message)
+
+  if (contract.project_id) {
+    await supabase.from('activity_logs').insert({
+      project_id: contract.project_id,
+      user_id: user.id,
+      action: 'Contract payment schedule preset applied',
+      details: { contract_number: contract.contract_number, preset },
+    })
+  }
+
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
 }
 
 export async function addPaymentMilestone(contractId: string, formData: FormData) {

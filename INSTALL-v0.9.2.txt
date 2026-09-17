@@ -1,0 +1,9 @@
+NTG Project Hub v0.9.2
+
+1. Extract this ZIP.
+2. Copy everything inside the extracted folder into your existing NTG-Project-Hub repository.
+3. Choose Replace/Merge when prompted.
+4. Commit: Streamline project estimate and contract payment workflow v0.9.2
+5. Push origin and wait for Vercel to deploy.
+
+No Supabase migration is required.
