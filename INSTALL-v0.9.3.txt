@@ -1,0 +1,8 @@
+1. Extract this ZIP.
+2. Copy everything inside the extracted folder into your NTG Project Hub repository.
+3. Choose Replace/Merge when prompted.
+4. Commit with: Fix sidebar navigation scrolling v0.9.3
+5. Push origin and wait for Vercel to show Ready.
+6. Refresh Project Hub with Ctrl+F5.
+
+No Supabase migration is required.
