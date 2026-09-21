@@ -103,6 +103,18 @@ export async function updateContract(id: string, formData: FormData) {
     due_date: dueType === 'fixed' && text(formData, 'due_date') ? text(formData, 'due_date') : null,
     due_date_notes: text(formData, 'due_date_notes'),
     additional_terms: text(formData, 'additional_terms'),
+    tm_labor_terms: text(formData, 'tm_labor_terms'),
+    tm_material_markup: text(formData, 'tm_material_markup') ? number(formData, 'tm_material_markup') : null,
+    tm_equipment_markup: text(formData, 'tm_equipment_markup') ? number(formData, 'tm_equipment_markup') : null,
+    tm_subcontractor_markup: text(formData, 'tm_subcontractor_markup') ? number(formData, 'tm_subcontractor_markup') : null,
+    tm_other_markup: text(formData, 'tm_other_markup') ? number(formData, 'tm_other_markup') : null,
+    tm_mobilization_charge: text(formData, 'tm_mobilization_charge') ? number(formData, 'tm_mobilization_charge') : null,
+    tm_minimum_charge: text(formData, 'tm_minimum_charge') ? number(formData, 'tm_minimum_charge') : null,
+    tm_not_to_exceed: text(formData, 'tm_not_to_exceed') ? number(formData, 'tm_not_to_exceed') : null,
+    tm_billing_frequency: text(formData, 'tm_billing_frequency'),
+    tm_union_labor: text(formData, 'tm_union_labor') === 'true',
+    tm_union_notes: text(formData, 'tm_union_notes'),
+    material_allowance_terms: text(formData, 'material_allowance_terms'),
   }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/contracts/${id}`)
@@ -214,6 +226,87 @@ export async function updatePaymentMilestone(contractId: string, milestoneId: st
 export async function deletePaymentMilestone(contractId: string, milestoneId: string) {
   const { supabase } = await requireUser()
   const { error } = await supabase.from('contract_payment_milestones').delete().eq('id', milestoneId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
+}
+
+
+export async function addTmRate(contractId: string, formData: FormData) {
+  const { supabase } = await requireUser()
+  const { count } = await supabase.from('contract_tm_rates').select('*', { count: 'exact', head: true }).eq('contract_id', contractId)
+  const { error } = await supabase.from('contract_tm_rates').insert({
+    contract_id: contractId, sort_order: count || 0, classification: text(formData, 'classification'),
+    regular_rate: number(formData, 'regular_rate'), overtime_rate: text(formData, 'overtime_rate') ? number(formData, 'overtime_rate') : null,
+    double_time_rate: text(formData, 'double_time_rate') ? number(formData, 'double_time_rate') : null,
+    unit: text(formData, 'unit') || 'HR', notes: text(formData, 'notes'),
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`); revalidatePath(`/contracts/${contractId}/print`)
+}
+
+export async function updateTmRate(contractId: string, rateId: string, formData: FormData) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('contract_tm_rates').update({
+    classification: text(formData, 'classification'), regular_rate: number(formData, 'regular_rate'),
+    overtime_rate: text(formData, 'overtime_rate') ? number(formData, 'overtime_rate') : null,
+    double_time_rate: text(formData, 'double_time_rate') ? number(formData, 'double_time_rate') : null,
+    unit: text(formData, 'unit') || 'HR', notes: text(formData, 'notes'),
+  }).eq('id', rateId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`); revalidatePath(`/contracts/${contractId}/print`)
+}
+
+export async function deleteTmRate(contractId: string, rateId: string) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('contract_tm_rates').delete().eq('id', rateId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`); revalidatePath(`/contracts/${contractId}/print`)
+}
+
+
+export async function addMaterialAllowance(contractId: string, formData: FormData) {
+  const { supabase } = await requireUser()
+  const { count } = await supabase.from('contract_material_allowances').select('*', { count: 'exact', head: true }).eq('contract_id', contractId)
+  const { error } = await supabase.from('contract_material_allowances').insert({
+    contract_id: contractId,
+    sort_order: count || 0,
+    category: text(formData, 'category'),
+    description: text(formData, 'description'),
+    quantity: text(formData, 'quantity') ? number(formData, 'quantity') : null,
+    unit: text(formData, 'unit'),
+    allowance_amount: number(formData, 'allowance_amount'),
+    actual_cost: text(formData, 'actual_cost') ? number(formData, 'actual_cost') : null,
+    markup_applies: text(formData, 'markup_applies') === 'true',
+    markup_percent: text(formData, 'markup_percent') ? number(formData, 'markup_percent') : null,
+    notes: text(formData, 'notes'),
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
+}
+
+export async function updateMaterialAllowance(contractId: string, allowanceId: string, formData: FormData) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('contract_material_allowances').update({
+    category: text(formData, 'category'),
+    description: text(formData, 'description'),
+    quantity: text(formData, 'quantity') ? number(formData, 'quantity') : null,
+    unit: text(formData, 'unit'),
+    allowance_amount: number(formData, 'allowance_amount'),
+    actual_cost: text(formData, 'actual_cost') ? number(formData, 'actual_cost') : null,
+    markup_applies: text(formData, 'markup_applies') === 'true',
+    markup_percent: text(formData, 'markup_percent') ? number(formData, 'markup_percent') : null,
+    notes: text(formData, 'notes'),
+  }).eq('id', allowanceId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
+}
+
+export async function deleteMaterialAllowance(contractId: string, allowanceId: string) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('contract_material_allowances').delete().eq('id', allowanceId)
   if (error) throw new Error(error.message)
   revalidatePath(`/contracts/${contractId}`)
   revalidatePath(`/contracts/${contractId}/print`)
