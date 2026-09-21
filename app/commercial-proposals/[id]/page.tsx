@@ -3,20 +3,20 @@ import { notFound } from 'next/navigation'
 import { AppShell } from '@/components/app-shell'
 import { requireUser } from '@/lib/auth'
 import { addCsiSection, addProposalItem, deleteCsiSection, deleteProposalItem, updateCommercialProposal, updateCsiSection, updateProposalItem } from '../actions'
+import { customerDisplayName } from '@/lib/customer-display'
 
 function money(v:any){return Number(v||0).toLocaleString('en-US',{style:'currency',currency:'USD'})}
 function basis(v:string){return ({lump_sum:'Lump Sum / Stipulated Sum',time_and_materials:'Time & Materials (T&M)',unit_price:'Unit Price',cost_plus:'Cost Plus Fee',gmp:'Guaranteed Maximum Price (GMP)',not_to_exceed:'Not-to-Exceed (NTE)'} as any)[v]||v}
-function customerName(c:any){return c?.company_name||[c?.first_name,c?.last_name].filter(Boolean).join(' ')||'Client'}
 
 export default async function ProposalDetail({params}:{params:Promise<{id:string}>}){
  const {id}=await params; const {supabase}=await requireUser()
- const {data:p}=await supabase.from('commercial_proposals').select('*,projects(id,project_number,project_name,project_address),customers(first_name,last_name,company_name,email,phone,billing_address),commercial_proposal_csi_sections(*),commercial_proposal_items(*)').eq('id',id).maybeSingle(); if(!p) notFound()
+ const {data:p}=await supabase.from('commercial_proposals').select('*,projects(id,project_number,project_name,project_address),customers(first_name,last_name,co_client_first_name,co_client_last_name,company_name,email,phone,co_client_email,co_client_phone,billing_address),commercial_proposal_csi_sections(*),commercial_proposal_items(*)').eq('id',id).maybeSingle(); if(!p) notFound()
  const project=Array.isArray(p.projects)?p.projects[0]:p.projects; const customer=Array.isArray(p.customers)?p.customers[0]:p.customers
  const sections=[...(p.commercial_proposal_csi_sections||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order); const items=[...(p.commercial_proposal_items||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
  const base=items.filter((i:any)=>!i.is_alternate).reduce((s:number,i:any)=>s+Number(i.quantity)*Number(i.unit_price),0); const alts=items.filter((i:any)=>i.is_alternate).reduce((s:number,i:any)=>s+Number(i.quantity)*Number(i.unit_price),0)
  const update=updateCommercialProposal.bind(null,id); const addSection=addCsiSection.bind(null,id); const addItem=addProposalItem.bind(null,id)
  return <AppShell title="Commercial Proposal Builder">
-  <div className="page-heading"><div><Link className="eyebrow-link" href="/commercial-proposals">← Commercial Proposals</Link><div className="project-title-line"><h2>{p.proposal_number}</h2><span className={`badge proposal-status-${p.status}`}>{p.status}</span><span className="badge">{basis(p.pricing_basis)}</span></div><p>{project?.project_number} · {project?.project_name} · {customerName(customer)}</p></div><div className="quick-actions-inline"><Link className="secondary-button" href={`/commercial-proposals/${id}/print`} target="_blank">Print / PDF</Link>{project?.id?<Link className="secondary-button" href={`/projects/${project.id}`}>Open Project</Link>:null}</div></div>
+  <div className="page-heading"><div><Link className="eyebrow-link" href="/commercial-proposals">← Commercial Proposals</Link><div className="project-title-line"><h2>{p.proposal_number}</h2><span className={`badge proposal-status-${p.status}`}>{p.status}</span><span className="badge">{basis(p.pricing_basis)}</span></div><p>{project?.project_number} · {project?.project_name} · {customerDisplayName(customer)}</p></div><div className="quick-actions-inline"><Link className="secondary-button" href={`/commercial-proposals/${id}/print`} target="_blank">Print / PDF</Link>{project?.id?<Link className="secondary-button" href={`/projects/${project.id}`}>Open Project</Link>:null}</div></div>
   <section className="grid-cards project-stats"><div className="card"><div className="stat-label">Base Proposal</div><div className="stat-value stat-money">{money(base)}</div></div><div className="card"><div className="stat-label">Alternates</div><div className="detail-value">{money(alts)}</div></div><div className="card"><div className="stat-label">CSI Sections</div><div className="detail-value">{sections.length}</div></div><div className="card"><div className="stat-label">Format</div><div className="detail-value">{p.template_depth}</div></div></section>
 
   <div className="proposal-builder-stack">

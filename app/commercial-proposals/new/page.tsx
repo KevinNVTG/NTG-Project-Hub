@@ -2,12 +2,13 @@ import Link from 'next/link'
 import { AppShell } from '@/components/app-shell'
 import { requireUser } from '@/lib/auth'
 import { createCommercialProposal } from '../actions'
+import { customerDisplayName } from '@/lib/customer-display'
 
 export default async function NewCommercialProposal() {
   const { supabase } = await requireUser()
   const { data: projectRows } = await supabase
     .from('projects')
-    .select('id,project_number,project_name,project_type,customers(company_name,first_name,last_name)')
+    .select('id,project_number,project_name,project_type,customers(company_name,first_name,last_name,co_client_first_name,co_client_last_name)')
     .order('created_at', { ascending: false })
   const projects = projectRows ?? []
 
@@ -34,7 +35,7 @@ export default async function NewCommercialProposal() {
               <option value="" disabled>Select a project</option>
               {projects.map((p: any) => {
                 const c = Array.isArray(p.customers) ? p.customers[0] : p.customers
-                const n = c?.company_name || [c?.first_name, c?.last_name].filter(Boolean).join(' ')
+                const n = customerDisplayName(c, '')
                 return (
                   <option key={p.id} value={p.id}>
                     {p.project_number} · {p.project_name}{n ? ` · ${n}` : ''}

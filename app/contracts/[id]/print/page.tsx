@@ -1,6 +1,7 @@
 import Image from 'next/image'
 import { notFound } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
+import { individualName } from '@/lib/customer-display'
 
 function money(value: number | string | null) { return Number(value || 0).toLocaleString('en-US', { style: 'currency', currency: 'USD' }) }
 function date(value: string | null) { if (!value) return '—'; return new Date(`${value}T12:00:00`).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) }
@@ -19,9 +20,12 @@ const residentialClauses = [
 export default async function ContractPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const { supabase } = await requireUser()
-  const { data: contract } = await supabase.from('contracts').select('*,projects(project_number,project_name,project_type),contract_payment_milestones(*)').eq('id', id).maybeSingle()
+  const { data: contract } = await supabase.from('contracts').select('*,projects(project_number,project_name,project_type),customers(first_name,last_name,co_client_first_name,co_client_last_name),contract_payment_milestones(*)').eq('id', id).maybeSingle()
   if (!contract) notFound()
   const project = Array.isArray(contract.projects) ? contract.projects[0] : contract.projects
+  const customer = Array.isArray(contract.customers) ? contract.customers[0] : contract.customers
+  const primaryClient = individualName(customer?.first_name, customer?.last_name)
+  const secondClient = individualName(customer?.co_client_first_name, customer?.co_client_last_name)
   const milestones = [...(contract.contract_payment_milestones || [])].sort((a: any, b: any) => a.sort_order - b.sort_order)
   const isCommercial = contract.contract_type === 'commercial'
   const dueText = contract.due_date_type === 'fixed' ? `The Services are scheduled to be completed by ${date(contract.due_date)}.${contract.due_date_notes ? ` ${contract.due_date_notes}` : ''}` : contract.due_date_type === 'other' ? (contract.due_date_notes || 'Completion will occur under the schedule agreed by the parties.') : `The Services do not have a fixed completion date.${contract.due_date_notes ? ` ${contract.due_date_notes}` : ''}`
@@ -59,7 +63,7 @@ export default async function ContractPrintPage({ params }: { params: Promise<{ 
       <section><h2>16. ADDITIONAL TERMS AND CONDITIONS</h2><p className="preline contract-additional">{contract.additional_terms || 'None.'}</p></section>
     </>}
 
-    <section className="contract-acceptance"><h2>ACCEPTANCE AND SIGNATURES</h2><p>By signing below, the parties acknowledge that they have read, understood, and accepted the terms of this Agreement.</p><div className="contract-signatures"><div><span>{isCommercial ? 'Client / GC Signature' : 'Client Signature'}</span></div><div><span>Date</span></div><div className="signature-name"><strong>Print Name: {contract.client_name || '________________________'}</strong></div><div></div><div><span>Contractor&apos;s Signature</span></div><div><span>Date</span></div><div className="signature-name"><strong>Print Name: Kevin Melendez | Nevada Tile &amp; Granite</strong></div><div></div></div></section>
+    <section className="contract-acceptance"><h2>ACCEPTANCE AND SIGNATURES</h2><p>By signing below, the parties acknowledge that they have read, understood, and accepted the terms of this Agreement.</p><div className="contract-signatures"><div><span>{isCommercial ? 'Client / GC Signature' : 'Client Signature'}</span></div><div><span>Date</span></div><div className="signature-name"><strong>Print Name: {primaryClient || contract.client_name || '________________________'}</strong></div><div></div>{secondClient ? <><div><span>{isCommercial ? 'Additional Client / GC Signature' : 'Second Client Signature'}</span></div><div><span>Date</span></div><div className="signature-name"><strong>Print Name: {secondClient}</strong></div><div></div></> : null}<div><span>Contractor&apos;s Signature</span></div><div><span>Date</span></div><div className="signature-name"><strong>Print Name: Kevin Melendez | Nevada Tile &amp; Granite</strong></div><div></div></div></section>
     <footer>{isCommercial ? 'Commercial Construction Contract' : 'Residential Construction Contract'} · Nevada Tile &amp; Granite · {contract.contract_number} · {project?.project_number}</footer>
   </article></main>
 }

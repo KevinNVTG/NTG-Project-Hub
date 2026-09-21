@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { requireUser } from '@/lib/auth'
 import { ntgToday } from '@/lib/ntg-date'
+import { customerDisplayName } from '@/lib/customer-display'
 
 function text(formData: FormData, key: string) {
   const value = formData.get(key)
@@ -15,10 +16,6 @@ function number(formData: FormData, key: string) {
   return Number.isFinite(value) ? value : 0
 }
 
-function customerName(c: any) {
-  return c?.company_name || [c?.first_name, c?.last_name].filter(Boolean).join(' ') || 'Client'
-}
-
 export async function convertEstimateToContract(estimateId: string) {
   const { supabase, user } = await requireUser()
   const { data: existing } = await supabase.from('contracts').select('id').eq('source_estimate_id', estimateId).maybeSingle()
@@ -26,7 +23,7 @@ export async function convertEstimateToContract(estimateId: string) {
 
   const { data: estimate, error } = await supabase
     .from('estimates')
-    .select('*, projects(id,project_name,project_address,project_type), customers(id,first_name,last_name,company_name,billing_address), estimate_items(category,description,quantity,unit,unit_price,taxable,sort_order)')
+    .select('*, projects(id,project_name,project_address,project_type), customers(id,first_name,last_name,co_client_first_name,co_client_last_name,company_name,billing_address), estimate_items(category,description,quantity,unit,unit_price,taxable,sort_order)')
     .eq('id', estimateId)
     .maybeSingle()
 
@@ -45,7 +42,7 @@ export async function convertEstimateToContract(estimateId: string) {
     customer_id: estimate.customer_id,
     source_estimate_id: estimate.id,
     contract_type: contractType,
-    client_name: customerName(customer),
+    client_name: customerDisplayName(customer, 'Client'),
     client_address: customer?.billing_address || '',
     project_address: project?.project_address || '',
     scope,

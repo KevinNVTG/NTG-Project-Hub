@@ -27,6 +27,10 @@ export async function createCustomer(formData: FormData) {
       company_name: companyName,
       email: text(formData, 'email'),
       phone: text(formData, 'phone'),
+      co_client_first_name: text(formData, 'co_client_first_name'),
+      co_client_last_name: text(formData, 'co_client_last_name'),
+      co_client_email: text(formData, 'co_client_email'),
+      co_client_phone: text(formData, 'co_client_phone'),
       billing_address: text(formData, 'billing_address'),
       notes: text(formData, 'notes'),
     })
@@ -57,6 +61,10 @@ export async function updateCustomer(customerId: string, formData: FormData) {
       company_name: companyName,
       email: text(formData, 'email'),
       phone: text(formData, 'phone'),
+      co_client_first_name: text(formData, 'co_client_first_name'),
+      co_client_last_name: text(formData, 'co_client_last_name'),
+      co_client_email: text(formData, 'co_client_email'),
+      co_client_phone: text(formData, 'co_client_phone'),
       billing_address: text(formData, 'billing_address'),
       notes: text(formData, 'notes'),
     })
