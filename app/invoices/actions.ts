@@ -26,7 +26,7 @@ export async function createInvoice(formData: FormData) {
   const customAmount = num(formData, 'amount')
   const customDescription = text(formData, 'description')
   if (!contractId) throw new Error('Select a contract.')
-  const { data: contract, error } = await supabase.from('contracts').select('id,project_id,customer_id,contract_number,contract_price,client_name,client_address,project_address,contract_payment_milestones(id,description,amount),change_orders(id,change_order_number,title,amount,status)').eq('id', contractId).maybeSingle()
+  const { data: contract, error } = await supabase.from('contracts').select('id,project_id,customer_id,contract_number,contract_price,pricing_basis,client_name,client_address,project_address,contract_payment_milestones(id,description,amount),change_orders(id,change_order_number,title,amount,status)').eq('id', contractId).maybeSingle()
   if (error || !contract) throw new Error(error?.message || 'Contract not found.')
 
   let description = customDescription || 'Progress billing'
@@ -48,6 +48,7 @@ export async function createInvoice(formData: FormData) {
     description = customDescription || 'Final contract balance'
     if (amount <= .005) throw new Error('This contract has no remaining uninvoiced balance.')
   }
+  if (type === 'time_and_materials' && contract.pricing_basis !== 'time_and_materials') throw new Error('T&M billing is only available for T&M contracts.')
   if (amount <= 0) throw new Error('Invoice amount must be greater than zero.')
 
   const { data: invoice, error: insertError } = await supabase.from('invoices').insert({
