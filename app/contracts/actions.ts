@@ -114,6 +114,7 @@ export async function updateContract(id: string, formData: FormData) {
     tm_billing_frequency: text(formData, 'tm_billing_frequency'),
     tm_union_labor: text(formData, 'tm_union_labor') === 'true',
     tm_union_notes: text(formData, 'tm_union_notes'),
+    material_allowance_terms: text(formData, 'material_allowance_terms'),
   }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/contracts/${id}`)
@@ -261,4 +262,52 @@ export async function deleteTmRate(contractId: string, rateId: string) {
   const { error } = await supabase.from('contract_tm_rates').delete().eq('id', rateId)
   if (error) throw new Error(error.message)
   revalidatePath(`/contracts/${contractId}`); revalidatePath(`/contracts/${contractId}/print`)
+}
+
+
+export async function addMaterialAllowance(contractId: string, formData: FormData) {
+  const { supabase } = await requireUser()
+  const { count } = await supabase.from('contract_material_allowances').select('*', { count: 'exact', head: true }).eq('contract_id', contractId)
+  const { error } = await supabase.from('contract_material_allowances').insert({
+    contract_id: contractId,
+    sort_order: count || 0,
+    category: text(formData, 'category'),
+    description: text(formData, 'description'),
+    quantity: text(formData, 'quantity') ? number(formData, 'quantity') : null,
+    unit: text(formData, 'unit'),
+    allowance_amount: number(formData, 'allowance_amount'),
+    actual_cost: text(formData, 'actual_cost') ? number(formData, 'actual_cost') : null,
+    markup_applies: text(formData, 'markup_applies') === 'true',
+    markup_percent: text(formData, 'markup_percent') ? number(formData, 'markup_percent') : null,
+    notes: text(formData, 'notes'),
+  })
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
+}
+
+export async function updateMaterialAllowance(contractId: string, allowanceId: string, formData: FormData) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('contract_material_allowances').update({
+    category: text(formData, 'category'),
+    description: text(formData, 'description'),
+    quantity: text(formData, 'quantity') ? number(formData, 'quantity') : null,
+    unit: text(formData, 'unit'),
+    allowance_amount: number(formData, 'allowance_amount'),
+    actual_cost: text(formData, 'actual_cost') ? number(formData, 'actual_cost') : null,
+    markup_applies: text(formData, 'markup_applies') === 'true',
+    markup_percent: text(formData, 'markup_percent') ? number(formData, 'markup_percent') : null,
+    notes: text(formData, 'notes'),
+  }).eq('id', allowanceId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
+}
+
+export async function deleteMaterialAllowance(contractId: string, allowanceId: string) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('contract_material_allowances').delete().eq('id', allowanceId)
+  if (error) throw new Error(error.message)
+  revalidatePath(`/contracts/${contractId}`)
+  revalidatePath(`/contracts/${contractId}/print`)
 }
