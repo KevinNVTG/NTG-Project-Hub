@@ -16,6 +16,9 @@ export async function createCommercialProposal(fd: FormData) {
   const validDays = Number(settings?.default_valid_days || 30)
   const proposalDate = text(fd,'proposal_date') || new Intl.DateTimeFormat('en-CA',{timeZone:'America/Los_Angeles',year:'numeric',month:'2-digit',day:'2-digit'}).format(new Date())
   const validUntil = text(fd,'valid_until') || new Date(new Date(proposalDate+'T12:00:00').getTime()+validDays*86400000).toISOString().slice(0,10)
+  const proposalScopeType = text(fd,'proposal_scope_type') || 'tile_and_stone'
+  const separateTradeSheets = fd.get('separate_trade_sheets') === 'on'
+  const autoTitle = proposalScopeType === 'tile_only' ? 'Commercial Tile Proposal' : proposalScopeType === 'stone_only' ? 'Commercial Stone Countertop Proposal' : 'Commercial Tile & Stone Proposal'
   const { data: proposal, error } = await supabase.from('commercial_proposals').insert({
     project_id: project.id,
     customer_id: project.customer_id,
@@ -23,14 +26,18 @@ export async function createCommercialProposal(fd: FormData) {
     valid_until: validUntil,
     template_depth: text(fd,'template_depth') || settings?.default_template_depth || 'standard',
     pricing_basis: text(fd,'pricing_basis') || settings?.default_pricing_basis || 'lump_sum',
-    title: text(fd,'title') || 'Commercial Tile & Stone Proposal',
+    proposal_scope_type: proposalScopeType,
+    separate_trade_sheets: separateTradeSheets,
+    title: text(fd,'title') || autoTitle,
     payment_terms: settings?.default_payment_terms || '', inclusions: settings?.default_inclusions || '', exclusions: settings?.default_exclusions || '',
     clarifications: settings?.default_clarifications || '', schedule_text: settings?.default_schedule_text || '', warranty_text: settings?.default_warranty_text || '',
     insurance_bonding: settings?.default_insurance_bonding || '', closeout_text: settings?.default_closeout_text || '', created_by:user.id,
   }).select('id').single()
   if (error || !proposal) throw new Error(error?.message || 'Could not create proposal')
-  const { data: preset } = await supabase.from('csi_scope_presets').select('*').eq('active',true).order('sort_order').limit(1).maybeSingle()
-  if (preset) await supabase.from('commercial_proposal_csi_sections').insert({proposal_id:proposal.id,sort_order:0,csi_code:preset.csi_code,csi_title:preset.csi_title,scope_text:preset.default_scope || ''})
+  const wantedCodes = proposalScopeType === 'tile_only' ? ['09 30 00'] : proposalScopeType === 'stone_only' ? ['12 36 40'] : ['09 30 00','12 36 40']
+  const { data: presets } = await supabase.from('csi_scope_presets').select('*').eq('active',true).in('csi_code',wantedCodes).order('sort_order')
+  const presetRows = presets ?? []
+  if (presetRows.length) await supabase.from('commercial_proposal_csi_sections').insert(presetRows.map((preset:any,index:number)=>({proposal_id:proposal.id,sort_order:index,csi_code:preset.csi_code,csi_title:preset.csi_title,scope_text:preset.default_scope || ''})))
   await supabase.from('activity_logs').insert({project_id:project.id,user_id:user.id,action:'Commercial proposal created',details:{proposal_id:proposal.id}})
   redirect(`/commercial-proposals/${proposal.id}`)
 }
@@ -39,6 +46,7 @@ export async function updateCommercialProposal(id:string, fd:FormData) {
   const { supabase } = await requireUser()
   const payload:any = {
     status:text(fd,'status')||'draft', template_depth:text(fd,'template_depth')||'standard', pricing_basis:text(fd,'pricing_basis')||'lump_sum',
+    proposal_scope_type:text(fd,'proposal_scope_type')||undefined, separate_trade_sheets:fd.get('separate_trade_sheets')==='on',
     proposal_date:text(fd,'proposal_date'), valid_until:text(fd,'valid_until')||null, title:text(fd,'title'), client_contact:text(fd,'client_contact'), client_email:text(fd,'client_email'), estimator:text(fd,'estimator'),
     executive_summary:text(fd,'executive_summary'), drawings_reference:text(fd,'drawings_reference'), specifications_reference:text(fd,'specifications_reference'), addenda_reference:text(fd,'addenda_reference'),
     inclusions:text(fd,'inclusions'), exclusions:text(fd,'exclusions'), clarifications:text(fd,'clarifications'), assumptions:text(fd,'assumptions'), schedule_text:text(fd,'schedule_text'), payment_terms:text(fd,'payment_terms'), warranty_text:text(fd,'warranty_text'), insurance_bonding:text(fd,'insurance_bonding'), closeout_text:text(fd,'closeout_text'), alternates_notes:text(fd,'alternates_notes'), proposal_notes:text(fd,'proposal_notes'),
