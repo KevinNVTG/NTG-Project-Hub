@@ -905,37 +905,39 @@ td {
   }
 }
 
-/* v0.9.4 - two-person customer records */
-.co-client-panel {
-  margin: 22px 0;
-  padding: 18px;
-  border: 1px solid #d8e1e7;
-  border-radius: 14px;
-  background: #f7fafc;
+/* v0.10.5 — commercial proposal pricing layout readability fix */
+.proposal-item-form,
+.proposal-item-add{
+  grid-template-columns:minmax(260px,2fr) minmax(185px,1.25fr) minmax(130px,.9fr) minmax(90px,.65fr) minmax(90px,.65fr);
+  gap:14px;
+  align-items:end;
+  width:100%;
+  min-width:0;
 }
-.co-client-panel h4 {
-  margin: 0;
-  font-size: 16px;
-  color: #172d3d;
+.proposal-item-form > *,
+.proposal-item-add > *{min-width:0}
+.proposal-item-form .proposal-item-desc,
+.proposal-item-add .proposal-item-desc{grid-column:span 2}
+.proposal-item-form .field input,
+.proposal-item-form .field select,
+.proposal-item-add .field input,
+.proposal-item-add .field select{width:100%;min-width:0}
+.proposal-item-form .check-field,
+.proposal-item-add .check-field{align-self:end;min-height:46px;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.proposal-item-form .proposal-item-total{align-self:end;min-height:46px;display:flex;flex-direction:column;justify-content:center}
+.proposal-item-form .secondary-button,
+.proposal-item-add .inline-primary{align-self:end;justify-self:start;white-space:nowrap}
+.proposal-item-add .inline-primary{min-height:46px}
+
+@media(max-width:1350px){
+  .proposal-item-form,.proposal-item-add{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .proposal-item-form .proposal-item-desc,.proposal-item-add .proposal-item-desc{grid-column:1/-1}
 }
-.optional-label {
-  display: inline-block;
-  margin-left: 6px;
-  padding: 3px 7px;
-  border-radius: 999px;
-  background: #e8eef2;
-  color: #647784;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: .06em;
-  text-transform: uppercase;
-  vertical-align: middle;
+@media(max-width:1050px){
+  .proposal-item-form,.proposal-item-add{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .proposal-item-form .proposal-item-desc,.proposal-item-add .proposal-item-desc{grid-column:1/-1}
 }
-.contact-secondary {
-  display: block;
-  margin-top: 5px;
-  color: #647784;
-  font-size: 13px;
-  font-weight: 500;
-  overflow-wrap: anywhere;
+@media(max-width:700px){
+  .proposal-item-form,.proposal-item-add{grid-template-columns:1fr}
+  .proposal-item-form .proposal-item-desc,.proposal-item-add .proposal-item-desc{grid-column:1}
 }
