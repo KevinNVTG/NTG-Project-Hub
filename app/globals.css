@@ -942,6 +942,73 @@ td {
   .proposal-item-form .proposal-item-desc,.proposal-item-add .proposal-item-desc{grid-column:1}
 }
 
+/* v0.10.6 — Hybrid Allowance + T&M / internal profitability */
+.internal-profit-card {
+  border: 1px solid rgba(146, 64, 14, .22);
+  background: linear-gradient(180deg, rgba(255,247,237,.92), #fff);
+}
+.internal-only-badge {
+  display: inline-flex;
+  margin-bottom: .5rem;
+  padding: .28rem .55rem;
+  border-radius: 999px;
+  background: #7c2d12;
+  color: #fff;
+  font-size: .72rem;
+  font-weight: 800;
+  letter-spacing: .05em;
+}
+.internal-field {
+  padding: .65rem;
+  border-radius: .65rem;
+  background: rgba(255,247,237,.8);
+  border: 1px solid rgba(146,64,14,.15);
+}
+.proposal-hybrid-settings {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0,1fr));
+  gap: 1rem;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-color, #dbe2ea);
+}
+.labor-rate-list { display: grid; gap: 1rem; }
+.labor-rate-card { border: 1px solid var(--border-color, #dbe2ea); border-radius: .8rem; padding: 1rem; background: #fff; }
+.labor-rate-form,
+.labor-rate-add {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0,1fr));
+  gap: .85rem;
+  align-items: end;
+}
+.labor-classification { grid-column: span 2; }
+.labor-notes { grid-column: span 2; }
+.internal-rate-summary {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 54px;
+  padding: .55rem .7rem;
+  border-radius: .65rem;
+  background: #fff7ed;
+  color: #7c2d12;
+}
+.internal-rate-summary span { font-size: .76rem; }
+.internal-rate-summary strong { font-size: .95rem; }
+.proposal-budget-estimate { border: 2px solid #132c4f; }
+.proposal-budget-amount { font-size: 1.65rem; font-weight: 800; color: #132c4f; margin: .25rem 0 .6rem; }
+@media (max-width: 1100px) {
+  .proposal-hybrid-settings { grid-template-columns: 1fr 1fr; }
+  .labor-rate-form,.labor-rate-add { grid-template-columns: repeat(2, minmax(0,1fr)); }
+}
+@media (max-width: 720px) {
+  .proposal-hybrid-settings,.labor-rate-form,.labor-rate-add { grid-template-columns: 1fr; }
+  .labor-classification,.labor-notes { grid-column: auto; }
+}
+@media print {
+  .internal-profit-card,.internal-only-badge,.internal-field,.internal-rate-summary { display: none !important; }
+  .proposal-budget-estimate { break-inside: avoid; }
+}
 /* v0.11.0 commercial proposal print-table readability fix */
 .commercial-proposal-print .proposal-price-table {
   width: 100%;
@@ -1049,3 +1116,8 @@ td {
   .commercial-proposal-print .proposal-price-table tr { break-inside: avoid; }
   .commercial-proposal-print .proposal-price-table thead { display: table-header-group; }
 }
+
+/* v0.11.2 - professional T&M area budget editor + print breakdown */
+.area-budget-editor{overflow:hidden}.area-budget-card{border:1px solid var(--border);border-radius:14px;padding:16px;margin:14px 0;background:#fff}.proposal-area-header{display:grid;grid-template-columns:minmax(220px,1fr) minmax(280px,2fr) auto;gap:12px;align-items:end}.proposal-area-add{display:grid;grid-template-columns:minmax(220px,1fr) minmax(280px,2fr) auto;gap:12px;align-items:end;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)}.area-labor-grid{margin:14px 0;display:grid;gap:8px}.area-labor-row{display:grid;grid-template-columns:minmax(220px,1.4fr) repeat(3,minmax(90px,.55fr)) auto;gap:10px;align-items:end;padding:10px 0;border-top:1px solid #e5e7eb}.area-labor-row>strong{align-self:center}.area-labor-row .field{margin:0}.proposal-table-area-budget{table-layout:fixed}.proposal-table-area-budget th:nth-child(1),.proposal-table-area-budget td:nth-child(1){width:24%;text-align:left}.proposal-table-area-budget th:nth-child(2),.proposal-table-area-budget td:nth-child(2){width:14%}.proposal-table-area-budget th:nth-child(n+3),.proposal-table-area-budget td:nth-child(n+3){width:15.5%;text-align:right}.proposal-table-area-budget th{white-space:normal;line-height:1.2}.proposal-table-area-budget td{vertical-align:top}.proposal-table-area-budget small{font-size:8.5pt;color:#536171;font-weight:400}
+@media(max-width:1000px){.proposal-area-header,.proposal-area-add{grid-template-columns:1fr}.area-labor-row{grid-template-columns:1fr 1fr 1fr}.area-labor-row>strong{grid-column:1/-1}.area-labor-row button{grid-column:1/-1}}
+@media print{.proposal-area-budget{break-inside:auto}.proposal-table-area-budget tr{break-inside:avoid}.proposal-table-area-budget thead{display:table-header-group}}
