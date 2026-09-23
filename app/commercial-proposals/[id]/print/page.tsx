@@ -6,6 +6,9 @@ function money(v:any){return Number(v||0).toLocaleString('en-US',{style:'currenc
 function basis(v:string){return ({lump_sum:'LUMP SUM / STIPULATED SUM',time_and_materials:'TIME & MATERIALS (T&M)',hybrid_allowance_tm:'HYBRID — ALLOWANCES + T&M',unit_price:'UNIT PRICE',cost_plus:'COST PLUS FEE',gmp:'GUARANTEED MAXIMUM PRICE (GMP)',not_to_exceed:'NOT-TO-EXCEED (NTE)'} as any)[v]||v}
 function customerName(c:any){return c?.company_name||[c?.first_name,c?.last_name].filter(Boolean).join(' ')||'Client'}
 function lines(t:any){return String(t||'').split('\n').map((x:string)=>x.trim()).filter(Boolean)}
+function allowanceBase(i:any){return Number(i.quantity||0)*Number(i.unit_price||0)}
+function allowanceMarkup(i:any){return allowanceBase(i)*Number(i.allowance_markup_pct||0)/100}
+function allowanceBudget(i:any){return allowanceBase(i)+allowanceMarkup(i)}
 
 export default async function ProposalPrint({params}:{params:Promise<{id:string}>}){
   const {id}=await params
@@ -22,7 +25,9 @@ export default async function ProposalPrint({params}:{params:Promise<{id:string}
   const allowanceItems=baseItems.filter((i:any)=>i.category==='allowance')
   const regularItems=baseItems.filter((i:any)=>i.category!=='allowance')
   const regularBase=regularItems.reduce((s:number,i:any)=>s+Number(i.quantity)*Number(i.unit_price),0)
-  const allowanceTotal=allowanceItems.reduce((s:number,i:any)=>s+Number(i.quantity)*Number(i.unit_price),0)
+  const allowanceBaseTotal=allowanceItems.reduce((s:number,i:any)=>s+allowanceBase(i),0)
+  const allowanceMarkupTotal=allowanceItems.reduce((s:number,i:any)=>s+allowanceMarkup(i),0)
+  const allowanceTotal=allowanceBaseTotal+allowanceMarkupTotal
   const altItems=items.filter((i:any)=>i.is_alternate)
   const projectedLaborBilling=laborRates.reduce((s:number,r:any)=>s+Number(r.estimated_st_hours||0)*Number(r.client_st_rate||0)+Number(r.estimated_ot_hours||0)*Number(r.client_ot_rate||0)+Number(r.estimated_dt_hours||0)*Number(r.client_dt_rate||0),0)
   const systemEstimate=regularBase+allowanceTotal+projectedLaborBilling
@@ -51,7 +56,7 @@ export default async function ProposalPrint({params}:{params:Promise<{id:string}
       </section>
     })}
 
-    {allowanceItems.length?<section className="proposal-print-section"><h3>Material Allowance Schedule</h3><table className="proposal-price-table"><thead><tr><th>Allowance</th><th>Qty</th><th>Unit</th><th>Allowance Rate</th><th>Allowance Amount</th></tr></thead><tbody>{allowanceItems.map((i:any)=><tr key={i.id}><td>{i.description}</td><td>{Number(i.quantity).toLocaleString()}</td><td>{i.unit}</td><td>{money(i.unit_price)}</td><td>{money(Number(i.quantity)*Number(i.unit_price))}</td></tr>)}</tbody><tfoot><tr><td colSpan={4}>TOTAL ALLOWANCES</td><td>{money(allowanceTotal)}</td></tr></tfoot></table><p>Allowances are budgetary amounts and will be reconciled to actual approved costs in accordance with the proposal and executed agreement.</p></section>:null}
+    {allowanceItems.length?<section className="proposal-print-section"><h3>Material Allowance Schedule</h3><table className="proposal-price-table proposal-allowance-table"><thead><tr><th>Allowance</th><th>Qty / Unit</th><th>Allowance Unit Rate</th><th>Base Allowance</th><th>Markup</th><th>Budgeted Total</th></tr></thead><tbody>{allowanceItems.map((i:any)=><tr key={i.id}><td>{i.description}</td><td>{Number(i.quantity).toLocaleString()} {i.unit}</td><td>{money(i.unit_price)}/{i.unit||'unit'}</td><td>{money(allowanceBase(i))}</td><td>{Number(i.allowance_markup_pct||0)>0?`${Number(i.allowance_markup_pct).toLocaleString()}% (${money(allowanceMarkup(i))})`:'—'}</td><td>{money(allowanceBudget(i))}</td></tr>)}</tbody><tfoot><tr><td colSpan={3}>TOTAL MATERIAL ALLOWANCES</td><td>{money(allowanceBaseTotal)}</td><td>{money(allowanceMarkupTotal)}</td><td>{money(allowanceTotal)}</td></tr></tfoot></table><p>Allowance unit rates may be stated per SF, LF, EA, SLAB, or other applicable unit. Quantities × allowance unit rate establish the base allowance. Where shown, contractor markup is added separately to establish the budgeted allowance total. Final allowance billing remains subject to the proposal and executed agreement.</p></section>:null}
 
     {laborRates.length&&tmLike&&p.show_client_labor_rates!==false?<section className="proposal-print-section"><h3>NTG Union Labor Billing Schedule</h3><p>The rates below are Nevada Tile & Granite customer billing rates for the listed union labor classifications. They are not employee wage or fringe-benefit rates.</p><table className="proposal-price-table"><thead><tr><th>Classification</th><th>Straight Time</th><th>Overtime</th><th>Double Time</th></tr></thead><tbody>{laborRates.map((r:any)=><tr key={r.id}><td>{r.classification}</td><td>{money(r.client_st_rate)}/hr</td><td>{money(r.client_ot_rate)}/hr</td><td>{money(r.client_dt_rate)}/hr</td></tr>)}</tbody></table>{p.tm_labor_terms?<p className="preserve-lines">{p.tm_labor_terms}</p>:null}</section>:null}
 
