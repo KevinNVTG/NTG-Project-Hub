@@ -45,6 +45,23 @@ export default async function ProposalPrint({params}:{params:Promise<{id:string}
   const tmLike=p.pricing_basis==='time_and_materials'||p.pricing_basis==='hybrid_allowance_tm'
 
   return <main className="commercial-proposal-print">
+    <style>{`
+      .commercial-proposal-print .proposal-table-allowances { width:100% !important; max-width:100% !important; table-layout:fixed !important; font-size:8px !important; }
+      .commercial-proposal-print .proposal-table-allowances th,
+      .commercial-proposal-print .proposal-table-allowances td { padding:6px 4px !important; line-height:1.2 !important; white-space:normal !important; overflow-wrap:anywhere !important; word-break:normal !important; box-sizing:border-box !important; }
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(1), .commercial-proposal-print .proposal-table-allowances td:nth-child(1){width:18% !important;text-align:left !important;}
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(2), .commercial-proposal-print .proposal-table-allowances td:nth-child(2){width:15% !important;text-align:left !important;}
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(3), .commercial-proposal-print .proposal-table-allowances td:nth-child(3){width:11% !important;text-align:right !important;}
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(4), .commercial-proposal-print .proposal-table-allowances td:nth-child(4){width:15% !important;text-align:right !important;}
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(5), .commercial-proposal-print .proposal-table-allowances td:nth-child(5){width:14% !important;text-align:right !important;}
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(6), .commercial-proposal-print .proposal-table-allowances td:nth-child(6){width:13% !important;text-align:right !important;}
+      .commercial-proposal-print .proposal-table-allowances th:nth-child(7), .commercial-proposal-print .proposal-table-allowances td:nth-child(7){width:14% !important;text-align:right !important;}
+      .commercial-proposal-print .proposal-table-allowances tfoot td { white-space:nowrap !important; }
+      @media print {
+        .commercial-proposal-print .proposal-table-allowances { font-size:7.5px !important; }
+        .commercial-proposal-print .proposal-table-allowances th { font-size:7px !important; }
+      }
+    `}</style>
     <header className="proposal-print-header"><div className="proposal-print-brand"><Image src="/ntg-logo.png" alt="Nevada Tile & Granite" width={74} height={74}/><div><h1>Nevada Tile & Granite</h1><p>{company?.address}</p><p>{company?.phone} · {company?.email}</p><p>C-19 #{company?.license_c19} · C-20 #{company?.license_c20}</p></div></div><div className="proposal-print-id"><strong>COMMERCIAL PROPOSAL</strong><span>{p.proposal_number}</span></div></header>
     <section className="proposal-print-title"><span>{basis(p.pricing_basis)}</span><h2>{p.title}</h2><p>{project?.project_name}</p></section>
     <section className="proposal-meta-grid"><div><span>Prepared For</span><strong>{customerName(customer)}</strong><p>{p.client_contact||''}</p><p>{p.client_email||customer?.email||''}</p></div><div><span>Project</span><strong>{project?.project_number} · {project?.project_name}</strong><p>{project?.project_address||''}</p></div><div><span>Proposal</span><p><b>Date</b> {p.proposal_date}</p><p><b>Valid Through</b> {p.valid_until||'—'}</p><p><b>Prepared By</b> {p.estimator||'Kevin Melendez'}</p></div></section>
