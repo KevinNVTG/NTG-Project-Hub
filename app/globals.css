@@ -942,70 +942,110 @@ td {
   .proposal-item-form .proposal-item-desc,.proposal-item-add .proposal-item-desc{grid-column:1}
 }
 
-/* v0.10.6 — Hybrid Allowance + T&M / internal profitability */
-.internal-profit-card {
-  border: 1px solid rgba(146, 64, 14, .22);
-  background: linear-gradient(180deg, rgba(255,247,237,.92), #fff);
+/* v0.11.0 commercial proposal print-table readability fix */
+.commercial-proposal-print .proposal-price-table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: 8.75px;
 }
-.internal-only-badge {
-  display: inline-flex;
-  margin-bottom: .5rem;
-  padding: .28rem .55rem;
-  border-radius: 999px;
-  background: #7c2d12;
-  color: #fff;
-  font-size: .72rem;
-  font-weight: 800;
-  letter-spacing: .05em;
+.commercial-proposal-print .proposal-price-table th,
+.commercial-proposal-print .proposal-price-table td {
+  box-sizing: border-box;
+  padding: 7px 6px;
+  line-height: 1.25;
+  vertical-align: top;
+  overflow-wrap: normal;
+  word-break: normal;
+  white-space: normal;
 }
-.internal-field {
-  padding: .65rem;
-  border-radius: .65rem;
-  background: rgba(255,247,237,.8);
-  border: 1px solid rgba(146,64,14,.15);
+.commercial-proposal-print .proposal-price-table th {
+  font-size: 8px;
+  letter-spacing: .015em;
+  text-transform: uppercase;
 }
-.proposal-hybrid-settings {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0,1fr));
-  gap: 1rem;
-  margin-top: 1rem;
-  padding-top: 1rem;
-  border-top: 1px solid var(--border-color, #dbe2ea);
+.commercial-proposal-print .proposal-price-table td:first-child,
+.commercial-proposal-print .proposal-price-table th:first-child {
+  width: auto;
 }
-.labor-rate-list { display: grid; gap: 1rem; }
-.labor-rate-card { border: 1px solid var(--border-color, #dbe2ea); border-radius: .8rem; padding: 1rem; background: #fff; }
-.labor-rate-form,
-.labor-rate-add {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0,1fr));
-  gap: .85rem;
-  align-items: end;
+.commercial-proposal-print .proposal-price-table th:nth-last-child(-n+4),
+.commercial-proposal-print .proposal-price-table td:nth-last-child(-n+4) {
+  text-align: inherit;
 }
-.labor-classification { grid-column: span 2; }
-.labor-notes { grid-column: span 2; }
-.internal-rate-summary {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  min-height: 54px;
-  padding: .55rem .7rem;
-  border-radius: .65rem;
-  background: #fff7ed;
-  color: #7c2d12;
+.commercial-proposal-print .proposal-price-table .num,
+.commercial-proposal-print .proposal-price-table td:last-child,
+.commercial-proposal-print .proposal-price-table th:last-child {
+  text-align: right;
 }
-.internal-rate-summary span { font-size: .76rem; }
-.internal-rate-summary strong { font-size: .95rem; }
-.proposal-budget-estimate { border: 2px solid #132c4f; }
-.proposal-budget-amount { font-size: 1.65rem; font-weight: 800; color: #132c4f; margin: .25rem 0 .6rem; }
-@media (max-width: 1100px) {
-  .proposal-hybrid-settings { grid-template-columns: 1fr 1fr; }
-  .labor-rate-form,.labor-rate-add { grid-template-columns: repeat(2, minmax(0,1fr)); }
-}
-@media (max-width: 720px) {
-  .proposal-hybrid-settings,.labor-rate-form,.labor-rate-add { grid-template-columns: 1fr; }
-  .labor-classification,.labor-notes { grid-column: auto; }
-}
+
+/* Standard pricing schedules: description gets the room, numbers remain compact. */
+.commercial-proposal-print .proposal-table-pricing th:nth-child(1),
+.commercial-proposal-print .proposal-table-pricing td:nth-child(1){width:42%;text-align:left}
+.commercial-proposal-print .proposal-table-pricing th:nth-child(2),
+.commercial-proposal-print .proposal-table-pricing td:nth-child(2){width:10%;text-align:right}
+.commercial-proposal-print .proposal-table-pricing th:nth-child(3),
+.commercial-proposal-print .proposal-table-pricing td:nth-child(3){width:10%;text-align:left}
+.commercial-proposal-print .proposal-table-pricing th:nth-child(4),
+.commercial-proposal-print .proposal-table-pricing td:nth-child(4){width:18%;text-align:right}
+.commercial-proposal-print .proposal-table-pricing th:nth-child(5),
+.commercial-proposal-print .proposal-table-pricing td:nth-child(5){width:20%;text-align:right}
+
+/* Allowance schedule: prevents long headings from colliding. */
+.commercial-proposal-print .proposal-table-allowances th:nth-child(1),
+.commercial-proposal-print .proposal-table-allowances td:nth-child(1){width:21%;text-align:left}
+.commercial-proposal-print .proposal-table-allowances th:nth-child(2),
+.commercial-proposal-print .proposal-table-allowances td:nth-child(2){width:13%;text-align:left}
+.commercial-proposal-print .proposal-table-allowances th:nth-child(3),
+.commercial-proposal-print .proposal-table-allowances td:nth-child(3){width:17%;text-align:right}
+.commercial-proposal-print .proposal-table-allowances th:nth-child(4),
+.commercial-proposal-print .proposal-table-allowances td:nth-child(4){width:16%;text-align:right}
+.commercial-proposal-print .proposal-table-allowances th:nth-child(5),
+.commercial-proposal-print .proposal-table-allowances td:nth-child(5){width:15%;text-align:right}
+.commercial-proposal-print .proposal-table-allowances th:nth-child(6),
+.commercial-proposal-print .proposal-table-allowances td:nth-child(6){width:18%;text-align:right}
+
+/* Estimated union labor: dedicated widths for the seven-column schedule. */
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(1),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(1){width:23%;text-align:left}
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(2),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(2),
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(3),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(3),
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(4),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(4){width:9%;text-align:right}
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(5),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(5){width:11%;text-align:right}
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(6),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(6){width:20%;text-align:right}
+.commercial-proposal-print .proposal-table-labor.rates-visible th:nth-child(7),
+.commercial-proposal-print .proposal-table-labor.rates-visible td:nth-child(7){width:19%;text-align:right}
+.commercial-proposal-print .proposal-table-labor.rates-hidden th:nth-child(1),
+.commercial-proposal-print .proposal-table-labor.rates-hidden td:nth-child(1){width:44%;text-align:left}
+.commercial-proposal-print .proposal-table-labor.rates-hidden th:nth-child(n+2),
+.commercial-proposal-print .proposal-table-labor.rates-hidden td:nth-child(n+2){width:14%;text-align:right}
+
+/* Budget and summary tables use simple, stable column sizing. */
+.commercial-proposal-print .proposal-table-budget td:nth-child(1){width:38%;font-weight:700}
+.commercial-proposal-print .proposal-table-budget td:nth-child(2){width:38%;color:#526877}
+.commercial-proposal-print .proposal-table-budget td:nth-child(3){width:24%;text-align:right;font-weight:700}
+.commercial-proposal-print .proposal-table-summary td:nth-child(1){width:18%}
+.commercial-proposal-print .proposal-table-summary td:nth-child(2){width:57%}
+.commercial-proposal-print .proposal-table-summary td:nth-child(3){width:25%;text-align:right}
+.commercial-proposal-print .proposal-table-alternates th:nth-child(1),
+.commercial-proposal-print .proposal-table-alternates td:nth-child(1){width:18%;text-align:left}
+.commercial-proposal-print .proposal-table-alternates th:nth-child(2),
+.commercial-proposal-print .proposal-table-alternates td:nth-child(2){width:42%;text-align:left}
+.commercial-proposal-print .proposal-table-alternates th:nth-child(3),
+.commercial-proposal-print .proposal-table-alternates td:nth-child(3){width:10%;text-align:right}
+.commercial-proposal-print .proposal-table-alternates th:nth-child(4),
+.commercial-proposal-print .proposal-table-alternates td:nth-child(4){width:10%;text-align:left}
+.commercial-proposal-print .proposal-table-alternates th:nth-child(5),
+.commercial-proposal-print .proposal-table-alternates td:nth-child(5){width:20%;text-align:right}
+
 @media print {
-  .internal-profit-card,.internal-only-badge,.internal-field,.internal-rate-summary { display: none !important; }
-  .proposal-budget-estimate { break-inside: avoid; }
+  .commercial-proposal-print .proposal-price-table { font-size: 8.25px; }
+  .commercial-proposal-print .proposal-price-table th { font-size: 7.6px; }
+  .commercial-proposal-print .proposal-price-table tr { break-inside: avoid; }
+  .commercial-proposal-print .proposal-price-table thead { display: table-header-group; }
 }
