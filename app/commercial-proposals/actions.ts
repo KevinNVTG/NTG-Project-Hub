@@ -51,6 +51,7 @@ export async function updateCommercialProposal(id:string, fd:FormData) {
     executive_summary:text(fd,'executive_summary'), drawings_reference:text(fd,'drawings_reference'), specifications_reference:text(fd,'specifications_reference'), addenda_reference:text(fd,'addenda_reference'),
     inclusions:text(fd,'inclusions'), exclusions:text(fd,'exclusions'), clarifications:text(fd,'clarifications'), assumptions:text(fd,'assumptions'), schedule_text:text(fd,'schedule_text'), payment_terms:text(fd,'payment_terms'), warranty_text:text(fd,'warranty_text'), insurance_bonding:text(fd,'insurance_bonding'), closeout_text:text(fd,'closeout_text'), alternates_notes:text(fd,'alternates_notes'), proposal_notes:text(fd,'proposal_notes'),
     labor_rate:num(fd,'labor_rate')||null, overtime_rate:num(fd,'overtime_rate')||null, material_markup:num(fd,'material_markup')||null, equipment_markup:num(fd,'equipment_markup')||null, subcontractor_markup:num(fd,'subcontractor_markup')||null, cost_plus_fee:num(fd,'cost_plus_fee')||null, not_to_exceed_amount:num(fd,'not_to_exceed_amount')||null, gmp_amount:num(fd,'gmp_amount')||null,
+    estimated_project_cost:num(fd,'estimated_project_cost')||null, estimated_project_cost_notes:text(fd,'estimated_project_cost_notes')||null, show_estimated_project_cost:fd.get('show_estimated_project_cost')==='on', show_client_labor_rates:fd.get('show_client_labor_rates')==='on', tm_labor_terms:text(fd,'tm_labor_terms')||null,
   }
   const { error } = await supabase.from('commercial_proposals').update(payload).eq('id',id)
   if (error) throw new Error(error.message)
@@ -72,11 +73,43 @@ export async function deleteCsiSection(proposalId:string, sectionId:string) {
 }
 export async function addProposalItem(id:string, fd:FormData) {
   const { supabase } = await requireUser(); const { count } = await supabase.from('commercial_proposal_items').select('*',{count:'exact',head:true}).eq('proposal_id',id)
-  const { error } = await supabase.from('commercial_proposal_items').insert({proposal_id:id,csi_section_id:text(fd,'csi_section_id')||null,sort_order:count||0,category:text(fd,'category')||'labor',description:text(fd,'description'),quantity:num(fd,'quantity')||1,unit:text(fd,'unit')||'LS',unit_price:num(fd,'unit_price'),is_alternate:fd.get('is_alternate')==='on',alternate_label:text(fd,'alternate_label')||null})
+  const { error } = await supabase.from('commercial_proposal_items').insert({proposal_id:id,csi_section_id:text(fd,'csi_section_id')||null,sort_order:count||0,category:text(fd,'category')||'labor',description:text(fd,'description'),quantity:num(fd,'quantity')||1,unit:text(fd,'unit')||'LS',unit_price:num(fd,'unit_price'),internal_unit_cost:num(fd,'internal_unit_cost'),is_alternate:fd.get('is_alternate')==='on',alternate_label:text(fd,'alternate_label')||null})
   if (error) throw new Error(error.message); revalidatePath(`/commercial-proposals/${id}`); revalidatePath(`/commercial-proposals/${id}/print`)
 }
 export async function updateProposalItem(proposalId:string,itemId:string,fd:FormData) {
-  const { supabase } = await requireUser(); const { error } = await supabase.from('commercial_proposal_items').update({csi_section_id:text(fd,'csi_section_id')||null,category:text(fd,'category')||'labor',description:text(fd,'description'),quantity:num(fd,'quantity')||1,unit:text(fd,'unit')||'LS',unit_price:num(fd,'unit_price'),is_alternate:fd.get('is_alternate')==='on',alternate_label:text(fd,'alternate_label')||null}).eq('id',itemId)
+  const { supabase } = await requireUser(); const { error } = await supabase.from('commercial_proposal_items').update({csi_section_id:text(fd,'csi_section_id')||null,category:text(fd,'category')||'labor',description:text(fd,'description'),quantity:num(fd,'quantity')||1,unit:text(fd,'unit')||'LS',unit_price:num(fd,'unit_price'),internal_unit_cost:num(fd,'internal_unit_cost'),is_alternate:fd.get('is_alternate')==='on',alternate_label:text(fd,'alternate_label')||null}).eq('id',itemId)
   if (error) throw new Error(error.message); revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
 }
 export async function deleteProposalItem(proposalId:string,itemId:string) { const { supabase } = await requireUser(); const { error } = await supabase.from('commercial_proposal_items').delete().eq('id',itemId); if(error) throw new Error(error.message); revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`) }
+
+
+export async function addProposalLaborRate(proposalId:string, fd:FormData) {
+  const { supabase } = await requireUser()
+  const { count } = await supabase.from('commercial_proposal_labor_rates').select('*',{count:'exact',head:true}).eq('proposal_id',proposalId)
+  const { error } = await supabase.from('commercial_proposal_labor_rates').insert({
+    proposal_id:proposalId, sort_order:count||0, classification:text(fd,'classification'),
+    client_st_rate:num(fd,'client_st_rate'), client_ot_rate:num(fd,'client_ot_rate'), client_dt_rate:num(fd,'client_dt_rate'),
+    internal_wage_rate:num(fd,'internal_wage_rate'), internal_fringe_rate:num(fd,'internal_fringe_rate'), internal_burden_pct:num(fd,'internal_burden_pct'),
+    estimated_st_hours:num(fd,'estimated_st_hours'), estimated_ot_hours:num(fd,'estimated_ot_hours'), estimated_dt_hours:num(fd,'estimated_dt_hours'), notes:text(fd,'notes')||null,
+  })
+  if(error) throw new Error(error.message)
+  revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
+}
+
+export async function updateProposalLaborRate(proposalId:string, rateId:string, fd:FormData) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('commercial_proposal_labor_rates').update({
+    classification:text(fd,'classification'), client_st_rate:num(fd,'client_st_rate'), client_ot_rate:num(fd,'client_ot_rate'), client_dt_rate:num(fd,'client_dt_rate'),
+    internal_wage_rate:num(fd,'internal_wage_rate'), internal_fringe_rate:num(fd,'internal_fringe_rate'), internal_burden_pct:num(fd,'internal_burden_pct'),
+    estimated_st_hours:num(fd,'estimated_st_hours'), estimated_ot_hours:num(fd,'estimated_ot_hours'), estimated_dt_hours:num(fd,'estimated_dt_hours'), notes:text(fd,'notes')||null,
+  }).eq('id',rateId)
+  if(error) throw new Error(error.message)
+  revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
+}
+
+export async function deleteProposalLaborRate(proposalId:string, rateId:string) {
+  const { supabase } = await requireUser()
+  const { error } = await supabase.from('commercial_proposal_labor_rates').delete().eq('id',rateId)
+  if(error) throw new Error(error.message)
+  revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
+}

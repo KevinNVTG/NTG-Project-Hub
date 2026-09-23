@@ -64,6 +64,7 @@ export default async function NewCommercialProposal() {
             <select name="pricing_basis" defaultValue={settings?.default_pricing_basis || 'lump_sum'}>
               <option value="lump_sum">Lump Sum / Stipulated Sum</option>
               <option value="time_and_materials">Time & Materials (T&M)</option>
+              <option value="hybrid_allowance_tm">Hybrid — Allowances + T&M</option>
               <option value="unit_price">Unit Price</option>
               <option value="cost_plus">Cost Plus Fee</option>
               <option value="gmp">Guaranteed Maximum Price (GMP)</option>
