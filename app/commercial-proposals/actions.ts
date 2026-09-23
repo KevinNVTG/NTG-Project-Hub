@@ -80,6 +80,19 @@ export async function updateProposalItem(proposalId:string,itemId:string,fd:Form
   const { supabase } = await requireUser(); const { error } = await supabase.from('commercial_proposal_items').update({csi_section_id:text(fd,'csi_section_id')||null,area_id:text(fd,'area_id')||null,category:text(fd,'category')||'labor',description:text(fd,'description'),quantity:num(fd,'quantity')||1,unit:text(fd,'unit')||'LS',unit_price:num(fd,'unit_price'),allowance_markup_pct:num(fd,'allowance_markup_pct'),internal_unit_cost:num(fd,'internal_unit_cost'),is_alternate:fd.get('is_alternate')==='on',alternate_label:text(fd,'alternate_label')||null}).eq('id',itemId)
   if (error) throw new Error(error.message); revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
 }
+
+export async function assignProposalItemArea(proposalId:string,itemId:string,fd:FormData) {
+  const { supabase } = await requireUser()
+  const areaId = text(fd,'area_id') || null
+  const { data, error } = await supabase.from('commercial_proposal_items').update({area_id:areaId}).eq('id',itemId).eq('proposal_id',proposalId).select('id,area_id').maybeSingle()
+  if(error) throw new Error(error.message)
+  if(!data) throw new Error('Could not save area assignment. Please verify the proposal area still exists and try again.')
+  if((data.area_id || null) !== areaId) throw new Error('Area assignment did not persist. Please try again.')
+  revalidatePath(`/commercial-proposals/${proposalId}`)
+  revalidatePath(`/commercial-proposals/${proposalId}/print`)
+  redirect(`/commercial-proposals/${proposalId}#pricing-item-${itemId}`)
+}
+
 export async function deleteProposalItem(proposalId:string,itemId:string) { const { supabase } = await requireUser(); const { error } = await supabase.from('commercial_proposal_items').delete().eq('id',itemId); if(error) throw new Error(error.message); revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`) }
 
 
