@@ -14,12 +14,12 @@ function allowanceBase(i:any){return Number(i.quantity||0)*Number(i.unit_price||
 export default async function ProposalDetail({params}:{params:Promise<{id:string}>}){
  const {id}=await params; const {supabase}=await requireUser()
  const {data:p}=await supabase.from('commercial_proposals').select('*,projects(id,project_number,project_name,project_address),customers(first_name,last_name,company_name,email,phone,billing_address),commercial_proposal_csi_sections(*),commercial_proposal_items(*),commercial_proposal_labor_rates(*),commercial_proposal_areas(*,commercial_proposal_area_labor(*))').eq('id',id).maybeSingle(); if(!p) notFound()
- const {data:scopeLaborData}=await supabase.from('commercial_proposal_scope_labor').select('*').eq('proposal_id',id)
- const scopeLaborAvailable=Array.isArray(scopeLaborData)
  const project=Array.isArray(p.projects)?p.projects[0]:p.projects; const customer=Array.isArray(p.customers)?p.customers[0]:p.customers
  const sections=[...(p.commercial_proposal_csi_sections||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order); const items=[...(p.commercial_proposal_items||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
  const laborRates=[...(p.commercial_proposal_labor_rates||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
- const areas=[...(p.commercial_proposal_areas||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
+ const allAreas=[...(p.commercial_proposal_areas||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
+ const directScopeAreas=allAreas.filter((a:any)=>String(a.area_name||'').startsWith('__DIRECT_CSI__:'))
+ const areas=allAreas.filter((a:any)=>!String(a.area_name||'').startsWith('__DIRECT_CSI__:'))
  const baseItems=items.filter((i:any)=>!i.is_alternate)
  const base=baseItems.reduce((s:number,i:any)=>s+itemSellTotal(i),0); const alts=items.filter((i:any)=>i.is_alternate).reduce((s:number,i:any)=>s+itemSellTotal(i),0)
  const allowanceBaseTotal=baseItems.filter((i:any)=>i.category==='allowance').reduce((s:number,i:any)=>s+allowanceBase(i),0)
@@ -28,7 +28,7 @@ export default async function ProposalDetail({params}:{params:Promise<{id:string
  const nonLaborRevenue=baseItems.filter((i:any)=>i.category!=='labor').reduce((s:number,i:any)=>s+itemSellTotal(i),0)
  const itemInternalCost=baseItems.reduce((s:number,i:any)=>s+Number(i.quantity)*Number(i.internal_unit_cost||0),0)
  const areaLaborRows=areas.flatMap((a:any)=>a.commercial_proposal_area_labor||[])
- const scopeLaborRows=[...(scopeLaborData||[])]
+ const scopeLaborRows=directScopeAreas.flatMap((a:any)=>(a.commercial_proposal_area_labor||[]).map((x:any)=>({...x,csi_section_id:String(a.area_name||'').slice('__DIRECT_CSI__:'.length)})))
  const hasScopeLabor=scopeLaborRows.some((x:any)=>Number(x.estimated_st_hours||0)+Number(x.estimated_ot_hours||0)+Number(x.estimated_dt_hours||0)>0)
  const hasAreaLabor=areaLaborRows.some((x:any)=>Number(x.estimated_st_hours||0)+Number(x.estimated_ot_hours||0)+Number(x.estimated_dt_hours||0)>0)
  const laborHoursByRate=new Map<string,{st:number,ot:number,dt:number}>()
@@ -46,7 +46,6 @@ export default async function ProposalDetail({params}:{params:Promise<{id:string
  const update=updateCommercialProposal.bind(null,id); const addSection=addCsiSection.bind(null,id); const addItem=addProposalItem.bind(null,id); const addLabor=addProposalLaborRate.bind(null,id); const addArea=addProposalArea.bind(null,id)
  return <AppShell title="Commercial Proposal Builder">
   <div className="page-heading"><div><Link className="eyebrow-link" href="/commercial-proposals">← Commercial Proposals</Link><div className="project-title-line"><h2>{p.proposal_number}</h2><span className={`badge proposal-status-${p.status}`}>{p.status}</span><span className="badge">{basis(p.pricing_basis)}</span></div><p>{project?.project_number} · {project?.project_name} · {customerName(customer)}</p></div><div className="quick-actions-inline"><Link className="secondary-button" href={`/commercial-proposals/${id}/print`} target="_blank">Print / PDF</Link>{project?.id?<Link className="secondary-button" href={`/projects/${project.id}`}>Open Project</Link>:null}</div></div>
-  {!scopeLaborAvailable?<div className="card" style={{border:'1px solid #e6c56f',background:'#fffaf0',padding:'14px 16px',display:'block',lineHeight:1.45}}><div style={{fontWeight:700,color:'#7a5714',marginBottom:4}}>Direct CSI labor allocation is not active yet</div><div className="muted-copy" style={{margin:0,lineHeight:1.45}}>Your proposal, pricing, and union labor schedule are still available. Direct labor-by-scope allocation will appear after the v0.12.2 database migration is active.</div></div>:null}
 
   <section className="grid-cards project-stats"><div className="card"><div className="stat-label">Total Proposal</div><div className="stat-value stat-money">{money(base+laborRevenue)}</div><div className="muted-copy">Pricing {money(base)} + Union labor {money(laborRevenue)}</div></div><div className="card"><div className="stat-label">Alternates</div><div className="detail-value">{money(alts)}</div></div><div className="card"><div className="stat-label">CSI Sections</div><div className="detail-value">{sections.length}</div></div><div className="card"><div className="stat-label">Format</div><div className="detail-value">{p.template_depth}</div></div></section>
 

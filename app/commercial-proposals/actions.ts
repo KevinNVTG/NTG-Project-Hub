@@ -202,21 +202,43 @@ export async function saveProposalAreaLabor(proposalId:string, areaId:string, la
 
 export async function saveProposalScopeLabor(proposalId:string, csiSectionId:string, laborRateId:string, fd:FormData) {
   const { supabase } = await requireUser()
-  const payload={proposal_id:proposalId,csi_section_id:csiSectionId,labor_rate_id:laborRateId,estimated_st_hours:num(fd,'estimated_st_hours'),estimated_ot_hours:num(fd,'estimated_ot_hours'),estimated_dt_hours:num(fd,'estimated_dt_hours')}
-  const { data, error } = await supabase.from('commercial_proposal_scope_labor')
-    .upsert(payload,{onConflict:'proposal_id,csi_section_id,labor_rate_id'})
-    .select('id,estimated_st_hours,estimated_ot_hours,estimated_dt_hours')
+  // Direct scope allocation intentionally reuses the proven Area Labor tables.
+  // A hidden system area is created per CSI section, so the same labor
+  // classification can be allocated across multiple CSI scopes without a new table.
+  const areaName = `__DIRECT_CSI__:${csiSectionId}`
+  let { data: systemArea, error: areaReadError } = await supabase
+    .from('commercial_proposal_areas')
+    .select('id')
+    .eq('proposal_id', proposalId)
+    .eq('area_name', areaName)
     .maybeSingle()
+  if (areaReadError) throw new Error(areaReadError.message)
 
-  // Do not leave the user on a failed Server Action response. If the scope-labor
-  // table/migration is unavailable, return them to the proposal where the setup
-  // notice can be shown instead of a browser-level "page unavailable" screen.
-  if(error || !data) {
-    console.error('Could not save commercial proposal scope labor', error)
-    redirect(`/commercial-proposals/${proposalId}?scopeLaborSave=error#direct-scope-labor`)
+  if (!systemArea) {
+    const { data: created, error: createError } = await supabase
+      .from('commercial_proposal_areas')
+      .insert({proposal_id:proposalId,sort_order:9999,area_name:areaName,notes:'System labor allocation record - hidden from proposal area views.'})
+      .select('id')
+      .single()
+    if (createError || !created) throw new Error(createError?.message || 'Could not create labor allocation record')
+    systemArea = created
   }
+
+  const payload={
+    area_id:systemArea.id,
+    labor_rate_id:laborRateId,
+    estimated_st_hours:num(fd,'estimated_st_hours'),
+    estimated_ot_hours:num(fd,'estimated_ot_hours'),
+    estimated_dt_hours:num(fd,'estimated_dt_hours')
+  }
+  const { data, error } = await supabase
+    .from('commercial_proposal_area_labor')
+    .upsert(payload,{onConflict:'area_id,labor_rate_id'})
+    .select('area_id,labor_rate_id,estimated_st_hours,estimated_ot_hours,estimated_dt_hours')
+    .maybeSingle()
+  if(error || !data) throw new Error(error?.message || 'Could not save scope labor hours')
 
   revalidatePath(`/commercial-proposals/${proposalId}`)
   revalidatePath(`/commercial-proposals/${proposalId}/print`)
-  redirect(`/commercial-proposals/${proposalId}?scopeLaborSave=saved#direct-scope-labor`)
+  redirect(`/commercial-proposals/${proposalId}#direct-scope-labor`)
 }
