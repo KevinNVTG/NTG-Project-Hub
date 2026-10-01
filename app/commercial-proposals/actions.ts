@@ -198,3 +198,12 @@ export async function saveProposalAreaLabor(proposalId:string, areaId:string, la
   if(error) throw new Error(error.message)
   revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
 }
+
+
+export async function saveProposalScopeLabor(proposalId:string, csiSectionId:string, laborRateId:string, fd:FormData) {
+  const { supabase } = await requireUser()
+  const payload={proposal_id:proposalId,csi_section_id:csiSectionId,labor_rate_id:laborRateId,estimated_st_hours:num(fd,'estimated_st_hours'),estimated_ot_hours:num(fd,'estimated_ot_hours'),estimated_dt_hours:num(fd,'estimated_dt_hours')}
+  const { error } = await supabase.from('commercial_proposal_scope_labor').upsert(payload,{onConflict:'proposal_id,csi_section_id,labor_rate_id'})
+  if(error) throw new Error(error.message)
+  revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
+}
