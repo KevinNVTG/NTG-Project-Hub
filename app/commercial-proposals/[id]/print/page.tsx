@@ -13,8 +13,9 @@ function allowanceBudget(i:any){return allowanceBase(i)+allowanceMarkup(i)}
 export default async function ProposalPrint({params}:{params:Promise<{id:string}>}){
   const {id}=await params
   const {supabase}=await requireUser()
-  const {data:p}=await supabase.from('commercial_proposals').select('*,projects(project_number,project_name,project_address),customers(first_name,last_name,company_name,email,phone,billing_address),commercial_proposal_csi_sections(*),commercial_proposal_items(*),commercial_proposal_labor_rates(*),commercial_proposal_areas(*,commercial_proposal_area_labor(*)),commercial_proposal_scope_labor(*)').eq('id',id).maybeSingle()
+  const {data:p}=await supabase.from('commercial_proposals').select('*,projects(project_number,project_name,project_address),customers(first_name,last_name,company_name,email,phone,billing_address),commercial_proposal_csi_sections(*),commercial_proposal_items(*),commercial_proposal_labor_rates(*),commercial_proposal_areas(*,commercial_proposal_area_labor(*))').eq('id',id).maybeSingle()
   if(!p)notFound()
+  const {data:scopeLaborData}=await supabase.from('commercial_proposal_scope_labor').select('*').eq('proposal_id',id)
   const {data:company}=await supabase.from('company_settings').select('*').limit(1).maybeSingle()
   const project=Array.isArray(p.projects)?p.projects[0]:p.projects
   const customer=Array.isArray(p.customers)?p.customers[0]:p.customers
@@ -23,7 +24,7 @@ export default async function ProposalPrint({params}:{params:Promise<{id:string}
   const laborRates=[...(p.commercial_proposal_labor_rates||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
   const areas=[...(p.commercial_proposal_areas||[])].sort((a:any,b:any)=>a.sort_order-b.sort_order)
   const areaLaborRows=areas.flatMap((a:any)=>(a.commercial_proposal_area_labor||[]).map((x:any)=>({...x,area_name:a.area_name})))
-  const scopeLaborRows=[...(p.commercial_proposal_scope_labor||[])]
+  const scopeLaborRows=[...(scopeLaborData||[])]
   const hasScopeLabor=scopeLaborRows.some((x:any)=>Number(x.estimated_st_hours||0)+Number(x.estimated_ot_hours||0)+Number(x.estimated_dt_hours||0)>0)
   const hasAreaLabor=areaLaborRows.some((x:any)=>Number(x.estimated_st_hours||0)+Number(x.estimated_ot_hours||0)+Number(x.estimated_dt_hours||0)>0)
   const displayLabor=laborRates.map((r:any)=>{const scopeRows=scopeLaborRows.filter((x:any)=>x.labor_rate_id===r.id);const areaRows=areaLaborRows.filter((x:any)=>x.labor_rate_id===r.id);const rows=hasScopeLabor?scopeRows:areaRows;const useRows=hasScopeLabor||hasAreaLabor;const st=useRows?rows.reduce((z:number,x:any)=>z+Number(x.estimated_st_hours||0),0):Number(r.estimated_st_hours||0);const ot=useRows?rows.reduce((z:number,x:any)=>z+Number(x.estimated_ot_hours||0),0):Number(r.estimated_ot_hours||0);const dt=useRows?rows.reduce((z:number,x:any)=>z+Number(x.estimated_dt_hours||0),0):Number(r.estimated_dt_hours||0);return {...r,display_st_hours:st,display_ot_hours:ot,display_dt_hours:dt}})
