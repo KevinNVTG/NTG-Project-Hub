@@ -203,7 +203,20 @@ export async function saveProposalAreaLabor(proposalId:string, areaId:string, la
 export async function saveProposalScopeLabor(proposalId:string, csiSectionId:string, laborRateId:string, fd:FormData) {
   const { supabase } = await requireUser()
   const payload={proposal_id:proposalId,csi_section_id:csiSectionId,labor_rate_id:laborRateId,estimated_st_hours:num(fd,'estimated_st_hours'),estimated_ot_hours:num(fd,'estimated_ot_hours'),estimated_dt_hours:num(fd,'estimated_dt_hours')}
-  const { error } = await supabase.from('commercial_proposal_scope_labor').upsert(payload,{onConflict:'proposal_id,csi_section_id,labor_rate_id'})
-  if(error) throw new Error(error.message)
-  revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
+  const { data, error } = await supabase.from('commercial_proposal_scope_labor')
+    .upsert(payload,{onConflict:'proposal_id,csi_section_id,labor_rate_id'})
+    .select('id,estimated_st_hours,estimated_ot_hours,estimated_dt_hours')
+    .maybeSingle()
+
+  // Do not leave the user on a failed Server Action response. If the scope-labor
+  // table/migration is unavailable, return them to the proposal where the setup
+  // notice can be shown instead of a browser-level "page unavailable" screen.
+  if(error || !data) {
+    console.error('Could not save commercial proposal scope labor', error)
+    redirect(`/commercial-proposals/${proposalId}?scopeLaborSave=error#direct-scope-labor`)
+  }
+
+  revalidatePath(`/commercial-proposals/${proposalId}`)
+  revalidatePath(`/commercial-proposals/${proposalId}/print`)
+  redirect(`/commercial-proposals/${proposalId}?scopeLaborSave=saved#direct-scope-labor`)
 }
