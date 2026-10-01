@@ -47,8 +47,12 @@ export default async function NewCommercialProposal() {
             <label>Trade scope</label>
             <select name="proposal_scope_type" defaultValue="tile_and_stone">
               <option value="tile_only">Tile only — CSI 09 30 00</option>
+              <option value="stone_tiling_only">Stone flooring & walls — CSI 09 30 33</option>
               <option value="stone_only">Stone countertops only — CSI 12 36 40</option>
-              <option value="tile_and_stone">Tile + stone — separate CSI scopes</option>
+              <option value="tile_stone_tiling">Tile + stone flooring/walls — CSI 09 30 00 + 09 30 33</option>
+              <option value="tile_and_stone">Tile + stone countertops — CSI 09 30 00 + 12 36 40</option>
+              <option value="stone_tiling_countertops">Stone flooring/walls + countertops — CSI 09 30 33 + 12 36 40</option>
+              <option value="tile_stone_tiling_countertops">Tile + stone flooring/walls + countertops — all three scopes</option>
             </select>
           </div>
           <div className="field">

@@ -18,7 +18,17 @@ export async function createCommercialProposal(fd: FormData) {
   const validUntil = text(fd,'valid_until') || new Date(new Date(proposalDate+'T12:00:00').getTime()+validDays*86400000).toISOString().slice(0,10)
   const proposalScopeType = text(fd,'proposal_scope_type') || 'tile_and_stone'
   const separateTradeSheets = fd.get('separate_trade_sheets') === 'on'
-  const autoTitle = proposalScopeType === 'tile_only' ? 'Commercial Tile Proposal' : proposalScopeType === 'stone_only' ? 'Commercial Stone Countertop Proposal' : 'Commercial Tile & Stone Proposal'
+  const scopeConfig:Record<string,{title:string,codes:string[]}> = {
+    tile_only:{title:'Commercial Tile Proposal',codes:['09 30 00']},
+    stone_tiling_only:{title:'Commercial Stone Tiling Proposal',codes:['09 30 33']},
+    stone_only:{title:'Commercial Stone Countertop Proposal',codes:['12 36 40']},
+    tile_stone_tiling:{title:'Commercial Tile & Stone Tiling Proposal',codes:['09 30 00','09 30 33']},
+    tile_and_stone:{title:'Commercial Tile & Stone Countertop Proposal',codes:['09 30 00','12 36 40']},
+    stone_tiling_countertops:{title:'Commercial Stone Tiling & Countertop Proposal',codes:['09 30 33','12 36 40']},
+    tile_stone_tiling_countertops:{title:'Commercial Tile & Stone Proposal',codes:['09 30 00','09 30 33','12 36 40']},
+  }
+  const selectedScope = scopeConfig[proposalScopeType] || scopeConfig.tile_and_stone
+  const autoTitle = selectedScope.title
   const { data: proposal, error } = await supabase.from('commercial_proposals').insert({
     project_id: project.id,
     customer_id: project.customer_id,
@@ -34,7 +44,7 @@ export async function createCommercialProposal(fd: FormData) {
     insurance_bonding: settings?.default_insurance_bonding || '', closeout_text: settings?.default_closeout_text || '', created_by:user.id,
   }).select('id').single()
   if (error || !proposal) throw new Error(error?.message || 'Could not create proposal')
-  const wantedCodes = proposalScopeType === 'tile_only' ? ['09 30 00'] : proposalScopeType === 'stone_only' ? ['12 36 40'] : ['09 30 00','12 36 40']
+  const wantedCodes = selectedScope.codes
   const { data: presets } = await supabase.from('csi_scope_presets').select('*').eq('active',true).in('csi_code',wantedCodes).order('sort_order')
   const presetRows = presets ?? []
   if (presetRows.length) await supabase.from('commercial_proposal_csi_sections').insert(presetRows.map((preset:any,index:number)=>({proposal_id:proposal.id,sort_order:index,csi_code:preset.csi_code,csi_title:preset.csi_title,scope_text:preset.default_scope || ''})))
