@@ -106,6 +106,40 @@ export async function assignProposalItemArea(proposalId:string,itemId:string,fd:
 export async function deleteProposalItem(proposalId:string,itemId:string) { const { supabase } = await requireUser(); const { error } = await supabase.from('commercial_proposal_items').delete().eq('id',itemId); if(error) throw new Error(error.message); revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`) }
 
 
+
+export async function loadNtgUnionLaborPreset(proposalId:string) {
+  const { supabase } = await requireUser()
+  const preset = [
+    { classification:'Union Tile Setter/Journeyman', client_st_rate:116.50, client_ot_rate:174.75, client_dt_rate:233.00, internal_wage_rate:52.23 },
+    { classification:'Union Finisher/Journeyman', client_st_rate:90.08, client_ot_rate:135.12, client_dt_rate:180.16 },
+    { classification:'Union Marble/Journeyman', client_st_rate:125.45, client_ot_rate:188.18, client_dt_rate:250.90 },
+  ]
+  const { data: existing, error: readError } = await supabase.from('commercial_proposal_labor_rates').select('*').eq('proposal_id',proposalId)
+  if(readError) throw new Error(readError.message)
+  const rows = existing || []
+  for (let index=0; index<preset.length; index++) {
+    const p = preset[index]
+    const current = rows.find((r:any)=>String(r.classification||'').trim().toLowerCase()===p.classification.toLowerCase())
+    if(current){
+      const payload:any={client_st_rate:p.client_st_rate,client_ot_rate:p.client_ot_rate,client_dt_rate:p.client_dt_rate}
+      if(p.internal_wage_rate && !Number(current.internal_wage_rate||0)) payload.internal_wage_rate=p.internal_wage_rate
+      const { error } = await supabase.from('commercial_proposal_labor_rates').update(payload).eq('id',current.id)
+      if(error) throw new Error(error.message)
+    } else {
+      const { error } = await supabase.from('commercial_proposal_labor_rates').insert({
+        proposal_id:proposalId, sort_order:rows.length+index, classification:p.classification,
+        client_st_rate:p.client_st_rate, client_ot_rate:p.client_ot_rate, client_dt_rate:p.client_dt_rate,
+        internal_wage_rate:p.internal_wage_rate||0, internal_fringe_rate:0, internal_burden_pct:0,
+        estimated_st_hours:0, estimated_ot_hours:0, estimated_dt_hours:0,
+        notes:'NTG standard commercial union billing preset'
+      })
+      if(error) throw new Error(error.message)
+    }
+  }
+  revalidatePath(`/commercial-proposals/${proposalId}`)
+  revalidatePath(`/commercial-proposals/${proposalId}/print`)
+}
+
 export async function addProposalLaborRate(proposalId:string, fd:FormData) {
   const { supabase } = await requireUser()
   const { count } = await supabase.from('commercial_proposal_labor_rates').select('*',{count:'exact',head:true}).eq('proposal_id',proposalId)
