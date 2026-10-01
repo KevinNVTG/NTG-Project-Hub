@@ -193,7 +193,7 @@ export async function deleteProposalArea(proposalId:string, areaId:string) {
 }
 export async function saveProposalAreaLabor(proposalId:string, areaId:string, laborRateId:string, fd:FormData) {
   const { supabase } = await requireUser()
-  const payload={area_id:areaId,labor_rate_id:laborRateId,estimated_st_hours:num(fd,'estimated_st_hours'),estimated_ot_hours:num(fd,'estimated_ot_hours'),estimated_dt_hours:num(fd,'estimated_dt_hours')}
+  const payload={area_id:areaId,labor_rate_id:laborRateId,csi_section_id:text(fd,'csi_section_id')||null,estimated_st_hours:num(fd,'estimated_st_hours'),estimated_ot_hours:num(fd,'estimated_ot_hours'),estimated_dt_hours:num(fd,'estimated_dt_hours')}
   const { error } = await supabase.from('commercial_proposal_area_labor').upsert(payload,{onConflict:'area_id,labor_rate_id'})
   if(error) throw new Error(error.message)
   revalidatePath(`/commercial-proposals/${proposalId}`); revalidatePath(`/commercial-proposals/${proposalId}/print`)
