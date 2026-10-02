@@ -115,6 +115,7 @@ export async function updateContract(id: string, formData: FormData) {
     tm_union_labor: text(formData, 'tm_union_labor') === 'true',
     tm_union_notes: text(formData, 'tm_union_notes'),
     material_allowance_terms: text(formData, 'material_allowance_terms'),
+    warranty_years: Math.max(1, Math.min(2, Number(text(formData, 'warranty_years') || 1))),
   }).eq('id', id)
   if (error) throw new Error(error.message)
   revalidatePath(`/contracts/${id}`)
