@@ -34,15 +34,27 @@ export async function createProject(formData: FormData) {
 export async function updateProject(projectId: string, formData: FormData) {
   const { supabase, user } = await requireUser()
   const customerId = text(formData, 'customer_id')
-  const { error } = await supabase.from('projects').update({
+  const contractAmountRaw = formData.get('contract_amount')
+  const updatePayload: Record<string, string | number | null> = {
     customer_id: customerId || null,
     project_name: text(formData, 'project_name'),
     project_address: text(formData, 'project_address'),
     project_type: text(formData, 'project_type') || 'residential',
     status: text(formData, 'status') || 'lead',
-    // Preserve the contract value. Project status/details edits must never reset financials.
     notes: text(formData, 'notes'),
-  }).eq('id', projectId)
+  }
+
+  // Save a manually edited contract value when the project form actually submits one.
+  // If a different project form does not include contract_amount, leave the stored value untouched.
+  if (contractAmountRaw !== null && String(contractAmountRaw).trim() !== '') {
+    const contractAmount = Number(contractAmountRaw)
+    if (!Number.isFinite(contractAmount) || contractAmount < 0) {
+      throw new Error('Contract amount must be a valid non-negative number.')
+    }
+    updatePayload.contract_amount = contractAmount
+  }
+
+  const { error } = await supabase.from('projects').update(updatePayload).eq('id', projectId)
   if (error) throw new Error(error.message)
   await supabase.from('activity_logs').insert({ project_id: projectId, user_id: user.id, action: 'Project updated' })
   revalidatePath('/projects')
