@@ -3,37 +3,36 @@ import { AppShell } from '@/components/app-shell'
 import { StatCard } from '@/components/stat-card'
 import { requireUser } from '@/lib/auth'
 
-function currency(value: number) { return value.toLocaleString('en-US', { style: 'currency', currency: 'USD' }) }
+function money(v:number|string|null){return Number(v||0).toLocaleString('en-US',{style:'currency',currency:'USD',maximumFractionDigits:0})}
 
 export default async function DashboardPage() {
   const { supabase, user } = await requireUser()
-  const [{ count: activeCount }, { count: customerCount }, { count: openEstimateCount }, { count: contractCount }, { count: openPoCount }, { data: estimates }, { data: purchaseOrders }, { data: projects }, { data: invoices }] = await Promise.all([
-    supabase.from('projects').select('*', { count: 'exact', head: true }).eq('status', 'active'),
+  const [{ data: allProjects }, { count: customerCount }, { count: estimateCount }, { count: proposalCount }] = await Promise.all([
+    supabase.from('projects').select('id,project_number,project_name,status,contract_amount,project_type,updated_at').order('updated_at', { ascending: false }),
     supabase.from('customers').select('*', { count: 'exact', head: true }),
-    supabase.from('estimates').select('*', { count: 'exact', head: true }).in('status', ['draft','sent']),
-    supabase.from('contracts').select('*', { count: 'exact', head: true }).in('status', ['prepared','sent']),
-    supabase.from('purchase_orders').select('*', { count: 'exact', head: true }).in('status', ['draft','issued','partially_received']),
-    supabase.from('estimates').select('status,sales_tax_rate,estimate_items(quantity,unit_price,taxable)').in('status', ['draft','sent','accepted']),
-    supabase.from('purchase_orders').select('status,shipping,sales_tax_rate,purchase_order_items(quantity,unit_cost,taxable)').neq('status','cancelled'),
-    supabase.from('projects').select('id,project_number,project_name,status,contract_amount,project_address').order('updated_at', { ascending: false }).limit(6),
-    supabase.from('invoices').select('status,invoice_items(quantity,unit_price),payments(amount)').neq('status','void'),
+    supabase.from('estimates').select('*', { count: 'exact', head: true }),
+    supabase.from('commercial_proposals').select('*', { count: 'exact', head: true }),
   ])
-  const committedPoCost = (purchaseOrders || []).reduce((sum: number, po: any) => {
-    const items = po.purchase_order_items || []
-    const subtotal = items.reduce((s: number, i: any) => s + Number(i.quantity || 0) * Number(i.unit_cost || 0), 0)
-    const taxable = items.filter((i: any) => i.taxable).reduce((s: number, i: any) => s + Number(i.quantity || 0) * Number(i.unit_cost || 0), 0)
-    return sum + subtotal + taxable * (Number(po.sales_tax_rate || 0) / 100) + Number(po.shipping || 0)
-  }, 0)
+  const projects = allProjects ?? []
+  const active = projects.filter((p:any)=>p.status==='active')
+  const pipeline = projects.filter((p:any)=>['lead','estimating','awarded'].includes(p.status))
+  const completed = projects.filter((p:any)=>['complete','closed'].includes(p.status))
+  const contractTotal = projects.reduce((sum:number,p:any)=>sum+Number(p.contract_amount||0),0)
+  const recent = projects.slice(0,7)
 
-  const accountsReceivable = (invoices || []).reduce((sum:number, inv:any) => { const total=(inv.invoice_items||[]).reduce((s:number,i:any)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0); const paid=(inv.payments||[]).reduce((s:number,p:any)=>s+Number(p.amount||0),0); return sum + (inv.status === 'draft' ? 0 : Math.max(0,total-paid)) },0)
-  const collected = (invoices || []).reduce((sum:number, inv:any)=>(sum+(inv.payments||[]).reduce((s:number,p:any)=>s+Number(p.amount||0),0)),0)
-
-  const estimatePipeline = (estimates || []).reduce((sum: number, e: any) => {
-    const items = e.estimate_items || []
-    const subtotal = items.reduce((s: number, i: any) => s + Number(i.quantity || 0) * Number(i.unit_price || 0), 0)
-    const taxable = items.filter((i: any) => i.taxable).reduce((s: number, i: any) => s + Number(i.quantity || 0) * Number(i.unit_price || 0), 0)
-    return sum + subtotal + taxable * (Number(e.sales_tax_rate || 0) / 100)
-  }, 0)
-
-  return <AppShell title="Command Center"><div className="page-heading"><div><h2>Good morning</h2><p>{user.email} · Here is the current NTG project snapshot.</p></div></div><section className="grid-cards"><StatCard label="Active Projects" value={activeCount ?? 0} /><StatCard label="Customers" value={customerCount ?? 0} /><StatCard label="Open Estimates" value={openEstimateCount ?? 0} /><StatCard label="Open Contracts" value={contractCount ?? 0} /><StatCard label="Open POs" value={openPoCount ?? 0} /><StatCard label="Committed PO Cost" value={currency(committedPoCost)} /><StatCard label="Estimate Pipeline" value={currency(estimatePipeline)} /><StatCard label="Accounts Receivable" value={currency(accountsReceivable)} /><StatCard label="Payments Collected" value={currency(collected)} /></section><section className="two-column"><div className="card"><div className="section-heading"><h3 className="section-title">Recent projects</h3><Link className="text-link" href="/projects">View all</Link></div>{projects?.length ? <div className="project-list">{projects.map((p: any) => <Link className="project-list-item" key={p.id} href={`/projects/${p.id}`}><div><strong>{p.project_number} · {p.project_name}</strong><small>{p.project_address || 'No address'}</small></div><div className="project-list-meta"><span className={`badge badge-status-${p.status}`}>{p.status.replace('_', ' ')}</span><strong>{currency(Number(p.contract_amount || 0))}</strong></div></Link>)}</div> : <div className="empty">Create the first project to begin.</div>}</div><div className="card"><h3 className="section-title">Quick actions</h3><div className="quick-grid"><Link className="quick-link" href="/customers">+ Customer</Link><Link className="quick-link" href="/projects">+ Project</Link><Link className="quick-link" href="/estimates/new">+ Estimate</Link><Link className="quick-link" href="/contracts">Contracts</Link><Link className="quick-link" href="/invoices/new">+ Invoice</Link><Link className="quick-link" href="/purchase-orders/new">+ PO</Link><Link className="quick-link" href="/vendors">+ Vendor</Link></div></div></section></AppShell>
+  return (
+    <AppShell title="Command Center">
+      <div className="page-heading command-heading"><div><div className="page-kicker">Operations overview</div><h2>Command Center</h2><p>{user.email} · Current workload, pipeline, and project value at a glance.</p></div><div className="page-actions"><Link className="inline-primary" href="/projects">New project</Link><Link className="secondary-button" href="/commercial-proposals/new">New proposal</Link></div></div>
+      <section className="grid-cards command-kpis">
+        <StatCard label="Active Projects" value={active.length} meta={`${projects.length} total projects`} />
+        <StatCard label="Preconstruction Pipeline" value={pipeline.length} meta="Lead · Estimating · Awarded" />
+        <StatCard label="Recorded Contract Value" value={money(contractTotal)} meta={`${completed.length} completed / closed`} />
+        <StatCard label="Customers" value={customerCount ?? 0} meta={`${estimateCount ?? 0} estimates · ${proposalCount ?? 0} commercial proposals`} />
+      </section>
+      <section className="dashboard-grid">
+        <div className="card dashboard-primary"><div className="section-heading"><div><h3 className="section-title">Recent project activity</h3><p className="muted-copy">Most recently updated jobs across the company.</p></div><Link className="text-link" href="/projects">View all projects</Link></div>{recent.length ? <div className="table-wrap"><table className="data-table"><thead><tr><th>Project</th><th>Type</th><th>Status</th><th className="num-col">Contract Value</th></tr></thead><tbody>{recent.map((p:any)=><tr key={p.id}><td><Link className="row-link" href={`/projects/${p.id}`}><strong>{p.project_number} · {p.project_name}</strong><small>Open project workspace</small></Link></td><td><span className={`badge badge-${p.project_type}`}>{p.project_type}</span></td><td><span className={`badge badge-status-${p.status}`}>{String(p.status).replace('_',' ')}</span></td><td className="num-col"><strong>{money(p.contract_amount)}</strong></td></tr>)}</tbody></table></div>:<div className="empty">No projects yet.</div>}</div>
+        <aside className="dashboard-side"><div className="card"><h3 className="section-title">Quick actions</h3><div className="quick-stack"><Link className="quick-link" href="/projects">Create project<span>Start a job record</span></Link><Link className="quick-link" href="/estimates/new">Create estimate<span>Residential / direct-client pricing</span></Link><Link className="quick-link" href="/commercial-proposals/new">Commercial proposal<span>CSI scope and commercial pricing</span></Link><Link className="quick-link" href="/invoices/new">Create invoice<span>Bill a contract or milestone</span></Link></div></div><div className="card operational-note"><div className="stat-label">Operating focus</div><strong>{active.length ? `${active.length} active project${active.length===1?'':'s'}` : 'No active projects'}</strong><p>Keep project status, contract value, and billing records current so the Command Center remains useful for management decisions.</p></div></aside>
+      </section>
+    </AppShell>
+  )
 }
