@@ -2,6 +2,7 @@ import Image from 'next/image'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
+import { PreventAccidentalEnterSubmit } from '@/components/prevent-accidental-enter-submit'
 
 const links = [
   ['/dashboard', 'Command Center'],
@@ -33,6 +34,7 @@ export async function AppShell({ title, children }: { title: string; children: R
 
   return (
     <div className="app-shell">
+      <PreventAccidentalEnterSubmit />
       <aside className="sidebar">
         <div className="brand-row"><Image className="sidebar-logo" src="/ntg-logo.png" alt="NTG" width={58} height={58} /><div><strong>NTG Project Hub</strong><small>Nevada Tile & Granite</small></div></div>
         <nav className="nav">{links.map(([href, label]) => <Link key={href} href={href}>{label}</Link>)}</nav>

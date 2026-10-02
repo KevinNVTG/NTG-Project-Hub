@@ -40,7 +40,7 @@ export async function updateProject(projectId: string, formData: FormData) {
     project_address: text(formData, 'project_address'),
     project_type: text(formData, 'project_type') || 'residential',
     status: text(formData, 'status') || 'lead',
-    contract_amount: 0,
+    // Preserve the contract value. Project status/details edits must never reset financials.
     notes: text(formData, 'notes'),
   }).eq('id', projectId)
   if (error) throw new Error(error.message)
@@ -48,4 +48,37 @@ export async function updateProject(projectId: string, formData: FormData) {
   revalidatePath('/projects')
   revalidatePath(`/projects/${projectId}`)
   revalidatePath('/dashboard')
+}
+
+
+export async function deleteProject(projectId: string) {
+  const { supabase, user } = await requireUser()
+
+  const { data: profile, error: profileError } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single()
+
+  if (profileError) throw new Error(profileError.message)
+  if (!profile || !['owner', 'administrator'].includes(profile.role)) {
+    throw new Error('Only an owner or administrator can permanently delete a project.')
+  }
+
+  const { data: project, error: projectError } = await supabase
+    .from('projects')
+    .select('id,project_number,project_name')
+    .eq('id', projectId)
+    .single()
+
+  if (projectError || !project) {
+    throw new Error(projectError?.message || 'Project not found.')
+  }
+
+  const { error } = await supabase.from('projects').delete().eq('id', projectId)
+  if (error) throw new Error(error.message)
+
+  revalidatePath('/projects')
+  revalidatePath('/dashboard')
+  return { ok: true, projectNumber: project.project_number, projectName: project.project_name }
 }
