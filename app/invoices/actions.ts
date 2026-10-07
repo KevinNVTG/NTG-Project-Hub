@@ -44,7 +44,19 @@ export async function createInvoice(formData: FormData) {
     source_change_order_id = co.id; description = `${co.change_order_number} - ${co.title}`; amount = Number(co.amount || 0)
   } else if (type === 'final') {
     const { data: existing } = await supabase.from('invoices').select('id,status,invoice_items(quantity,unit_price)').eq('contract_id', contractId).neq('status', 'void')
-    const alreadyInvoiced = (existing || []).reduce((s: number, inv: any) => s + (inv.invoice_items || []).reduce((x: number, i: any) => x + Number(i.quantity || 0) * Number(i.unit_price || 0), 0), 0)
+    const directIds = new Set((existing || []).map((inv:any)=>inv.id))
+    const directTotal = (existing || []).reduce((s: number, inv: any) => s + (inv.invoice_items || []).reduce((x: number, i: any) => x + Number(i.quantity || 0) * Number(i.unit_price || 0), 0), 0)
+    let linkedTotal = 0
+    const sourced = await supabase.from('invoice_items').select('invoice_id,quantity,unit_price').eq('source_contract_id', contractId)
+    if (!sourced.error && sourced.data?.length) {
+      const extraIds = [...new Set((sourced.data as any[]).map((row:any)=>row.invoice_id).filter((invoiceId:string)=>!directIds.has(invoiceId)))]
+      if (extraIds.length) {
+        const active = await supabase.from('invoices').select('id,status').in('id', extraIds).neq('status','void')
+        const activeIds = new Set((active.data || []).map((inv:any)=>inv.id))
+        linkedTotal = (sourced.data as any[]).filter((row:any)=>activeIds.has(row.invoice_id)).reduce((sum:number,row:any)=>sum+Number(row.quantity||0)*Number(row.unit_price||0),0)
+      }
+    }
+    const alreadyInvoiced = directTotal + linkedTotal
     amount = Math.max(0, Number(contract.contract_price || 0) - alreadyInvoiced)
     description = customDescription || 'Final contract balance'
     if (amount <= .005) throw new Error('This contract has no remaining uninvoiced balance.')
@@ -59,8 +71,11 @@ export async function createInvoice(formData: FormData) {
     created_by: user.id,
   }).select('id,invoice_number').single()
   if (insertError || !invoice) throw new Error(insertError?.message || 'Could not create invoice.')
-  const { error: itemError } = await supabase.from('invoice_items').insert({ invoice_id: invoice.id, description, quantity: 1, unit: 'LS', unit_price: amount })
-  if (itemError) throw new Error(itemError.message)
+  let itemResult = await supabase.from('invoice_items').insert({ invoice_id: invoice.id, description, quantity: 1, unit: 'LS', unit_price: amount, source_contract_id: contract.id, source_project_id: contract.project_id })
+  if (itemResult.error && /source_contract_id|source_project_id/i.test(itemResult.error.message)) {
+    itemResult = await supabase.from('invoice_items').insert({ invoice_id: invoice.id, description, quantity: 1, unit: 'LS', unit_price: amount })
+  }
+  if (itemResult.error) throw new Error(itemResult.error.message)
   await supabase.from('activity_logs').insert({ project_id: contract.project_id, user_id: user.id, action: 'Invoice created', details: `${invoice.invoice_number} created for ${contract.contract_number} - ${money(amount)}` })
   revalidatePath('/invoices'); revalidatePath(`/contracts/${contractId}`); revalidatePath(`/projects/${contract.project_id}`); revalidatePath('/dashboard')
   redirect(`/invoices/${invoice.id}`)
@@ -130,6 +145,95 @@ export async function createConsolidatedInvoice(formData: FormData) {
     revalidatePath(`/projects/${c.project_id}`); revalidatePath(`/contracts/${c.id}`)
   }
   revalidatePath('/invoices'); revalidatePath('/dashboard')
+  redirect(`/invoices/${invoice.id}`)
+}
+
+
+export async function createProjectInvoice(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const contractIds = formData.getAll('contract_ids').filter((x): x is string => typeof x === 'string' && !!x)
+  if (!contractIds.length) throw new Error('Select at least one contract to invoice.')
+
+  const { data: contracts, error } = await supabase
+    .from('contracts')
+    .select('id,project_id,customer_id,contract_number,contract_price,client_name,client_address,project_address,projects(id,project_number,project_name)')
+    .in('id', contractIds)
+  if (error || !contracts || contracts.length !== contractIds.length) throw new Error(error?.message || 'Could not load the selected contracts.')
+
+  const customerIds = new Set(contracts.map((c:any)=>c.customer_id || `name:${c.client_name}`))
+  if (customerIds.size > 1) throw new Error('All contracts on a project invoice must belong to the same customer.')
+
+  const ordered = contractIds.map(id => contracts.find((c:any)=>c.id===id)).filter(Boolean) as any[]
+  const primary = ordered[0]
+  const invoiceRows:any[] = []
+  const referenceLines:string[] = []
+  let combined = 0
+
+  for (const c of ordered) {
+    const direct = await supabase.from('invoices').select('id,status,invoice_items(quantity,unit_price)').eq('contract_id', c.id).neq('status','void')
+    let invoiceIds = new Set((direct.data || []).map((x:any)=>x.id))
+
+    // Include prior multi-contract invoices when the optional link table is available.
+    const linked = await supabase.from('invoice_contract_links').select('invoice_id').eq('contract_id', c.id)
+    if (!linked.error && linked.data?.length) {
+      for (const row of linked.data as any[]) invoiceIds.add(row.invoice_id)
+    }
+
+    let existing:any[] = direct.data || []
+    const extraIds = [...invoiceIds].filter(id => !existing.some((x:any)=>x.id===id))
+    if (extraIds.length) {
+      const extra = await supabase.from('invoices').select('id,status,invoice_items(quantity,unit_price)').in('id', extraIds).neq('status','void')
+      if (!extra.error && extra.data) existing = existing.concat(extra.data)
+    }
+
+    const already = existing.reduce((sum:number,inv:any)=>sum+(inv.invoice_items||[]).reduce((x:number,i:any)=>x+Number(i.quantity||0)*Number(i.unit_price||0),0),0)
+    const remaining = Math.max(0, Math.round((Number(c.contract_price || 0) - already) * 100) / 100)
+    const project = Array.isArray(c.projects) ? c.projects[0] : c.projects
+    const ref = `${project?.project_number || ''}${project?.project_number ? ' · ' : ''}${project?.project_name || 'Project'} — ${c.contract_number}`
+    referenceLines.push(ref)
+    if (remaining > .005) {
+      invoiceRows.push({ description: `${ref} — remaining contract balance`, quantity:1, unit:'LS', unit_price:remaining })
+      combined += remaining
+    }
+  }
+
+  if (combined <= .005) throw new Error('The selected contracts have no remaining uninvoiced balance.')
+
+  const notes = text(formData,'notes') || `Project invoice referencing: ${referenceLines.join('; ')}`
+  const { data: invoice, error: insertError } = await supabase.from('invoices').insert({
+    project_id: primary.project_id,
+    customer_id: primary.customer_id,
+    contract_id: null,
+    invoice_type: 'custom',
+    invoice_date: ntgToday(),
+    client_name: primary.client_name,
+    client_address: primary.client_address,
+    project_address: referenceLines.join(' | '),
+    notes,
+    created_by: user.id,
+  }).select('id,invoice_number').single()
+  if (insertError || !invoice) throw new Error(insertError?.message || 'Could not create project invoice.')
+
+  const items = invoiceRows.map((row,index)=>({invoice_id:invoice.id,sort_order:index,...row,source_contract_id:ordered[index]?.id||null,source_project_id:ordered[index]?.project_id||null}))
+  let itemInsert = await supabase.from('invoice_items').insert(items)
+  if (itemInsert.error && /source_contract_id|source_project_id/i.test(itemInsert.error.message)) {
+    itemInsert = await supabase.from('invoice_items').insert(invoiceRows.map((row,index)=>({invoice_id:invoice.id,sort_order:index,...row})))
+  }
+  if (itemInsert.error) throw new Error(itemInsert.error.message)
+
+  // Link every referenced contract when that table is available. Do not fail invoice creation if an older deployment has not added it yet.
+  const links = ordered.map((c:any,index:number)=>({invoice_id:invoice.id,contract_id:c.id,project_id:c.project_id,sort_order:index}))
+  const linkResult = await supabase.from('invoice_contract_links').insert(links)
+  if (linkResult.error) console.warn('invoice_contract_links unavailable:', linkResult.error.message)
+
+  for (const c of ordered) {
+    const project = Array.isArray(c.projects) ? c.projects[0] : c.projects
+    await supabase.from('activity_logs').insert({project_id:c.project_id,user_id:user.id,action:'Project invoice created',details:`${invoice.invoice_number} references ${project?.project_name || c.contract_number}`})
+    revalidatePath(`/projects/${c.project_id}`)
+    revalidatePath(`/contracts/${c.id}`)
+  }
+  revalidatePath('/invoices')
+  revalidatePath('/dashboard')
   redirect(`/invoices/${invoice.id}`)
 }
 
