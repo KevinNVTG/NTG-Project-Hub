@@ -275,4 +275,68 @@ export async function recordPayment(invoiceId:string,formData:FormData){
   await supabase.from('activity_logs').insert({project_id:inv.project_id,user_id:user.id,action:'Payment recorded',details:`${money(amount)} received for ${inv.invoice_number}`})
   revalidatePath(`/invoices/${invoiceId}`);revalidatePath(`/invoices/${invoiceId}/print`);revalidatePath('/invoices');if(inv.contract_id)revalidatePath(`/contracts/${inv.contract_id}`);revalidatePath(`/projects/${inv.project_id}`);revalidatePath('/dashboard')
 }
+
+
+async function revalidatePaymentContext(supabase: any, invoiceId: string) {
+  const { data: inv } = await supabase.from('invoices').select('project_id,contract_id').eq('id', invoiceId).maybeSingle()
+  revalidatePath(`/invoices/${invoiceId}`)
+  revalidatePath(`/invoices/${invoiceId}/print`)
+  revalidatePath('/invoices')
+  revalidatePath('/dashboard')
+  if (inv?.contract_id) revalidatePath(`/contracts/${inv.contract_id}`)
+  if (inv?.project_id) revalidatePath(`/projects/${inv.project_id}`)
+}
+
+export async function updatePayment(invoiceId:string,paymentId:string,formData:FormData){
+  const {supabase,user}=await requireUser()
+  const amount=num(formData,'amount')
+  if(amount<=0) throw new Error('Payment amount must be greater than zero.')
+
+  const {data:payment,error:paymentError}=await supabase.from('payments').select('id,invoice_id,amount').eq('id',paymentId).eq('invoice_id',invoiceId).maybeSingle()
+  if(paymentError||!payment) throw new Error(paymentError?.message||'Payment not found.')
+
+  const {data:inv,error:invoiceError}=await supabase.from('invoices').select('id,invoice_number,project_id,contract_id,status,invoice_items(quantity,unit_price),payments(id,amount)').eq('id',invoiceId).maybeSingle()
+  if(invoiceError||!inv) throw new Error(invoiceError?.message||'Invoice not found.')
+  if(inv.status==='void') throw new Error('Payments on a void invoice cannot be edited.')
+
+  const total=(inv.invoice_items||[]).reduce((s:number,i:any)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0)
+  const otherPaid=(inv.payments||[]).filter((p:any)=>p.id!==paymentId).reduce((s:number,p:any)=>s+Number(p.amount||0),0)
+  const available=Math.round((total-otherPaid)*100)/100
+  if(amount>available+.005) throw new Error(`Payment exceeds the remaining invoice amount of ${money(available)}.`)
+
+  const {error}=await supabase.from('payments').update({
+    payment_date:text(formData,'payment_date')||ntgToday(),
+    amount,
+    payment_method:text(formData,'payment_method')||'check',
+    reference_number:text(formData,'reference_number'),
+    notes:text(formData,'notes')
+  }).eq('id',paymentId).eq('invoice_id',invoiceId)
+  if(error) throw new Error(error.message)
+
+  await refreshInvoiceStatus(supabase,invoiceId)
+  if(inv.project_id){
+    await supabase.from('activity_logs').insert({project_id:inv.project_id,user_id:user.id,action:'Payment corrected',details:`Payment on ${inv.invoice_number} changed from ${money(Number(payment.amount||0))} to ${money(amount)}`})
+  }
+  await revalidatePaymentContext(supabase,invoiceId)
+}
+
+export async function deletePayment(invoiceId:string,paymentId:string){
+  const {supabase,user}=await requireUser()
+  const {data:inv,error:invoiceError}=await supabase.from('invoices').select('invoice_number,project_id,contract_id,status').eq('id',invoiceId).maybeSingle()
+  if(invoiceError||!inv) throw new Error(invoiceError?.message||'Invoice not found.')
+  if(inv.status==='void') throw new Error('Payments on a void invoice cannot be removed.')
+
+  const {data:payment,error:paymentError}=await supabase.from('payments').select('id,amount,payment_date,payment_method,reference_number').eq('id',paymentId).eq('invoice_id',invoiceId).maybeSingle()
+  if(paymentError||!payment) throw new Error(paymentError?.message||'Payment not found.')
+
+  const {error}=await supabase.from('payments').delete().eq('id',paymentId).eq('invoice_id',invoiceId)
+  if(error) throw new Error(error.message)
+
+  await refreshInvoiceStatus(supabase,invoiceId)
+  if(inv.project_id){
+    await supabase.from('activity_logs').insert({project_id:inv.project_id,user_id:user.id,action:'Payment removed',details:`Removed ${money(Number(payment.amount||0))} payment from ${inv.invoice_number} dated ${payment.payment_date}`})
+  }
+  await revalidatePaymentContext(supabase,invoiceId)
+}
+
 export async function voidInvoice(invoiceId:string){const {supabase}=await requireUser();const {data:inv}=await supabase.from('invoices').select('contract_id,project_id,payments(id)').eq('id',invoiceId).maybeSingle();if(!inv)throw new Error('Invoice not found.');if((inv.payments||[]).length)throw new Error('Remove or reverse payments before voiding an invoice.');const {error}=await supabase.from('invoices').update({status:'void'}).eq('id',invoiceId);if(error)throw new Error(error.message);revalidatePath(`/invoices/${invoiceId}`);revalidatePath('/invoices');if(inv.contract_id)revalidatePath(`/contracts/${inv.contract_id}`);revalidatePath('/dashboard')}
