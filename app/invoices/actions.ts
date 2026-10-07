@@ -7,6 +7,7 @@ import { ntgToday } from '@/lib/ntg-date'
 
 function text(fd: FormData, key: string) { const v = fd.get(key); return typeof v === 'string' ? v.trim() : '' }
 function num(fd: FormData, key: string) { const n = Number(text(fd, key) || 0); return Number.isFinite(n) ? n : 0 }
+function money(v:number){ return v.toLocaleString('en-US',{style:'currency',currency:'USD'}) }
 
 async function refreshInvoiceStatus(supabase: any, invoiceId: string) {
   const { data: inv } = await supabase.from('invoices').select('status,due_date,invoice_items(quantity,unit_price),payments(amount)').eq('id', invoiceId).maybeSingle()
@@ -60,8 +61,75 @@ export async function createInvoice(formData: FormData) {
   if (insertError || !invoice) throw new Error(insertError?.message || 'Could not create invoice.')
   const { error: itemError } = await supabase.from('invoice_items').insert({ invoice_id: invoice.id, description, quantity: 1, unit: 'LS', unit_price: amount })
   if (itemError) throw new Error(itemError.message)
-  await supabase.from('activity_logs').insert({ project_id: contract.project_id, user_id: user.id, action: 'Invoice created', details: `${invoice.invoice_number} created for ${contract.contract_number} - ${amount.toLocaleString('en-US',{style:'currency',currency:'USD'})}` })
+  await supabase.from('activity_logs').insert({ project_id: contract.project_id, user_id: user.id, action: 'Invoice created', details: `${invoice.invoice_number} created for ${contract.contract_number} - ${money(amount)}` })
   revalidatePath('/invoices'); revalidatePath(`/contracts/${contractId}`); revalidatePath(`/projects/${contract.project_id}`); revalidatePath('/dashboard')
+  redirect(`/invoices/${invoice.id}`)
+}
+
+export async function createConsolidatedInvoice(formData: FormData) {
+  const { supabase, user } = await requireUser()
+  const contractIds = formData.getAll('contract_ids').filter((x): x is string => typeof x === 'string' && !!x)
+  if (contractIds.length < 2) throw new Error('Select at least two projects/contracts for a consolidated invoice.')
+
+  const { data: contracts, error } = await supabase
+    .from('contracts')
+    .select('id,project_id,customer_id,contract_number,contract_price,client_name,client_address,project_address,projects(project_number,project_name)')
+    .in('id', contractIds)
+  if (error || !contracts || contracts.length !== contractIds.length) throw new Error(error?.message || 'Could not load all selected contracts.')
+
+  const customerIds = new Set(contracts.map((c:any)=>c.customer_id || `name:${c.client_name}`))
+  if (customerIds.size > 1) throw new Error('All projects on a consolidated invoice must belong to the same customer.')
+
+  const ordered = contractIds.map(id => contracts.find((c:any)=>c.id===id)).filter(Boolean) as any[]
+  const primary = ordered[0]
+  const invoiceRows:any[] = []
+  let combined = 0
+
+  for (const c of ordered) {
+    const { data: existing } = await supabase.from('invoices').select('id,status,invoice_items(quantity,unit_price)').eq('contract_id', c.id).neq('status','void')
+    const already = (existing || []).reduce((s:number,inv:any)=>s+(inv.invoice_items||[]).reduce((x:number,i:any)=>x+Number(i.quantity||0)*Number(i.unit_price||0),0),0)
+    const remaining = Math.max(0, Number(c.contract_price || 0) - already)
+    const p = Array.isArray(c.projects) ? c.projects[0] : c.projects
+    if (remaining > .005) {
+      invoiceRows.push({ description: `${p?.project_number || ''}${p?.project_number ? ' · ' : ''}${p?.project_name || 'Project'} — ${c.contract_number} remaining balance`, quantity:1, unit:'LS', unit_price:remaining })
+      combined += remaining
+    }
+  }
+  if (combined <= .005) throw new Error('The selected projects have no remaining uninvoiced contract balance.')
+
+  const deduction = Math.max(0, num(formData,'trade_damage_amount'))
+  const deductionNote = text(formData,'trade_damage_description') || 'Trade damage deduction'
+  if (deduction > combined + .005) throw new Error('Trade damage deduction cannot exceed the combined invoice subtotal.')
+
+  const { data: invoice, error: insertError } = await supabase.from('invoices').insert({
+    project_id: primary.project_id,
+    customer_id: primary.customer_id,
+    contract_id: primary.id,
+    invoice_type: 'consolidated',
+    invoice_date: ntgToday(),
+    client_name: primary.client_name,
+    client_address: primary.client_address,
+    project_address: ordered.map((c:any)=>{const p=Array.isArray(c.projects)?c.projects[0]:c.projects;return `${p?.project_number || ''}${p?.project_number?' · ':''}${p?.project_name || ''}`}).join('\n'),
+    notes: text(formData,'notes') || 'Consolidated billing for the projects/contracts listed on this invoice.',
+    created_by: user.id,
+  }).select('id,invoice_number').single()
+  if (insertError || !invoice) throw new Error(insertError?.message || 'Could not create consolidated invoice.')
+
+  const links = ordered.map((c:any,index:number)=>({invoice_id:invoice.id,contract_id:c.id,project_id:c.project_id,sort_order:index}))
+  const { error: linkError } = await supabase.from('invoice_contract_links').insert(links)
+  if (linkError) throw new Error(linkError.message)
+
+  const items = invoiceRows.map((x,index)=>({invoice_id:invoice.id,sort_order:index,...x}))
+  if (deduction > 0) items.push({invoice_id:invoice.id,sort_order:items.length,description:deductionNote,quantity:1,unit:'DEDUCT',unit_price:-deduction})
+  const { error:itemError } = await supabase.from('invoice_items').insert(items)
+  if (itemError) throw new Error(itemError.message)
+
+  for (const c of ordered) {
+    const p = Array.isArray(c.projects) ? c.projects[0] : c.projects
+    await supabase.from('activity_logs').insert({project_id:c.project_id,user_id:user.id,action:'Consolidated invoice created',details:`${invoice.invoice_number} includes ${p?.project_name || c.contract_number}`})
+    revalidatePath(`/projects/${c.project_id}`); revalidatePath(`/contracts/${c.id}`)
+  }
+  revalidatePath('/invoices'); revalidatePath('/dashboard')
   redirect(`/invoices/${invoice.id}`)
 }
 
@@ -72,7 +140,7 @@ export async function updateInvoice(id: string, formData: FormData) {
   if (inv.status === 'paid' || inv.status === 'void') throw new Error('Paid or void invoices cannot be edited.')
   const { error } = await supabase.from('invoices').update({ status: text(formData,'status') || 'draft', invoice_date: text(formData,'invoice_date') || ntgToday(), due_date: text(formData,'due_date') || null, client_name: text(formData,'client_name'), client_address: text(formData,'client_address'), project_address: text(formData,'project_address'), notes: text(formData,'notes') }).eq('id',id)
   if (error) throw new Error(error.message)
-  revalidatePath(`/invoices/${id}`); revalidatePath(`/invoices/${id}/print`); revalidatePath('/invoices'); revalidatePath(`/contracts/${inv.contract_id}`)
+  revalidatePath(`/invoices/${id}`); revalidatePath(`/invoices/${id}/print`); revalidatePath('/invoices'); if(inv.contract_id)revalidatePath(`/contracts/${inv.contract_id}`)
 }
 
 export async function addInvoiceItem(invoiceId: string, formData: FormData) {
@@ -80,16 +148,27 @@ export async function addInvoiceItem(invoiceId: string, formData: FormData) {
   const { error } = await supabase.from('invoice_items').insert({ invoice_id: invoiceId, sort_order: count || 0, description: text(formData,'description'), quantity: num(formData,'quantity') || 1, unit: text(formData,'unit') || 'LS', unit_price: num(formData,'unit_price') })
   if (error) throw new Error(error.message); revalidatePath(`/invoices/${invoiceId}`); revalidatePath(`/invoices/${invoiceId}/print`)
 }
+
+export async function addInvoiceDeduction(invoiceId:string, formData:FormData){
+  const {supabase}=await requireUser(); const amount=Math.max(0,num(formData,'amount')); if(amount<=0)throw new Error('Deduction amount must be greater than zero.')
+  const {data:inv}=await supabase.from('invoices').select('status,invoice_items(quantity,unit_price)').eq('id',invoiceId).maybeSingle(); if(!inv)throw new Error('Invoice not found.'); if(['paid','void'].includes(inv.status))throw new Error('Paid or void invoices cannot be edited.')
+  const subtotal=(inv.invoice_items||[]).reduce((s:number,i:any)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0); if(amount>subtotal+.005)throw new Error('Deduction cannot exceed the current invoice subtotal.')
+  const {count}=await supabase.from('invoice_items').select('*',{count:'exact',head:true}).eq('invoice_id',invoiceId)
+  const description=text(formData,'description')||'Trade damage deduction'
+  const {error}=await supabase.from('invoice_items').insert({invoice_id:invoiceId,sort_order:count||0,description,quantity:1,unit:'DEDUCT',unit_price:-amount}); if(error)throw new Error(error.message)
+  revalidatePath(`/invoices/${invoiceId}`);revalidatePath(`/invoices/${invoiceId}/print`)
+}
+
 export async function updateInvoiceItem(invoiceId:string,itemId:string,formData:FormData){ const {supabase}=await requireUser(); const {error}=await supabase.from('invoice_items').update({description:text(formData,'description'),quantity:num(formData,'quantity'),unit:text(formData,'unit')||'LS',unit_price:num(formData,'unit_price')}).eq('id',itemId); if(error)throw new Error(error.message); revalidatePath(`/invoices/${invoiceId}`);revalidatePath(`/invoices/${invoiceId}/print`) }
 export async function deleteInvoiceItem(invoiceId:string,itemId:string){ const {supabase}=await requireUser(); const {error}=await supabase.from('invoice_items').delete().eq('id',itemId);if(error)throw new Error(error.message);revalidatePath(`/invoices/${invoiceId}`);revalidatePath(`/invoices/${invoiceId}/print`) }
 
 export async function recordPayment(invoiceId:string,formData:FormData){
   const {supabase,user}=await requireUser(); const amount=num(formData,'amount'); if(amount<=0)throw new Error('Payment amount must be greater than zero.')
   const {data:inv}=await supabase.from('invoices').select('project_id,contract_id,invoice_number,status,invoice_items(quantity,unit_price),payments(amount)').eq('id',invoiceId).maybeSingle(); if(!inv)throw new Error('Invoice not found.'); if(inv.status==='void')throw new Error('Cannot pay a void invoice.')
-  const total=(inv.invoice_items||[]).reduce((s:number,i:any)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0); const paid=(inv.payments||[]).reduce((s:number,p:any)=>s+Number(p.amount||0),0); if(amount>total-paid+.005)throw new Error('Payment exceeds the remaining invoice balance.')
+  const total=(inv.invoice_items||[]).reduce((s:number,i:any)=>s+Number(i.quantity||0)*Number(i.unit_price||0),0); const paid=(inv.payments||[]).reduce((s:number,p:any)=>s+Number(p.amount||0),0); const remaining=Math.round((total-paid)*100)/100; if(amount>remaining+.005)throw new Error('Payment exceeds the remaining invoice balance.')
   const {error}=await supabase.from('payments').insert({invoice_id:invoiceId,project_id:inv.project_id,contract_id:inv.contract_id,payment_date:text(formData,'payment_date')||ntgToday(),amount,payment_method:text(formData,'payment_method')||'check',reference_number:text(formData,'reference_number'),notes:text(formData,'notes'),created_by:user.id});if(error)throw new Error(error.message)
   if(inv.status==='draft') await supabase.from('invoices').update({status:'sent'}).eq('id',invoiceId); await refreshInvoiceStatus(supabase,invoiceId)
-  await supabase.from('activity_logs').insert({project_id:inv.project_id,user_id:user.id,action:'Payment recorded',details:`${amount.toLocaleString('en-US',{style:'currency',currency:'USD'})} received for ${inv.invoice_number}`})
-  revalidatePath(`/invoices/${invoiceId}`);revalidatePath(`/invoices/${invoiceId}/print`);revalidatePath('/invoices');revalidatePath(`/contracts/${inv.contract_id}`);revalidatePath(`/projects/${inv.project_id}`);revalidatePath('/dashboard')
+  await supabase.from('activity_logs').insert({project_id:inv.project_id,user_id:user.id,action:'Payment recorded',details:`${money(amount)} received for ${inv.invoice_number}`})
+  revalidatePath(`/invoices/${invoiceId}`);revalidatePath(`/invoices/${invoiceId}/print`);revalidatePath('/invoices');if(inv.contract_id)revalidatePath(`/contracts/${inv.contract_id}`);revalidatePath(`/projects/${inv.project_id}`);revalidatePath('/dashboard')
 }
-export async function voidInvoice(invoiceId:string){const {supabase}=await requireUser();const {data:inv}=await supabase.from('invoices').select('contract_id,project_id,payments(id)').eq('id',invoiceId).maybeSingle();if(!inv)throw new Error('Invoice not found.');if((inv.payments||[]).length)throw new Error('Remove or reverse payments before voiding an invoice.');const {error}=await supabase.from('invoices').update({status:'void'}).eq('id',invoiceId);if(error)throw new Error(error.message);revalidatePath(`/invoices/${invoiceId}`);revalidatePath('/invoices');revalidatePath(`/contracts/${inv.contract_id}`);revalidatePath('/dashboard')}
+export async function voidInvoice(invoiceId:string){const {supabase}=await requireUser();const {data:inv}=await supabase.from('invoices').select('contract_id,project_id,payments(id)').eq('id',invoiceId).maybeSingle();if(!inv)throw new Error('Invoice not found.');if((inv.payments||[]).length)throw new Error('Remove or reverse payments before voiding an invoice.');const {error}=await supabase.from('invoices').update({status:'void'}).eq('id',invoiceId);if(error)throw new Error(error.message);revalidatePath(`/invoices/${invoiceId}`);revalidatePath('/invoices');if(inv.contract_id)revalidatePath(`/contracts/${inv.contract_id}`);revalidatePath('/dashboard')}
